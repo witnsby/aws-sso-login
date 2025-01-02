@@ -8,7 +8,7 @@ import (
 )
 
 func console(profileName string, forceLogout bool, logoutWait int) error {
-	profile, err := helper.RetrieveProfile(profileName)
+	profile, err := retrieveProfile(profileName)
 	if err != nil {
 		return err
 	}

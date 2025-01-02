@@ -3,17 +3,18 @@ package cli
 import (
 	"fmt"
 	"github.com/go-ini/ini"
+	"github.com/sirupsen/logrus"
 	"github.com/witnsby/aws-sso-login/src/internal/helper"
 	"os"
 )
 
-// ----------------------------------------------------------------------------
-// Subcommand: import
-// ----------------------------------------------------------------------------
-
+// importCreds retrieves AWS credentials for the specified profile,
+// writes them to the AWS credentials file under that profile section,
+// and ensures the credentials are saved properly.
 func importCreds(profileName string) error {
-	profile, err := helper.RetrieveProfile(profileName)
+	profile, err := retrieveProfile(profileName)
 	if err != nil {
+		logrus.Info(err)
 		return err
 	}
 

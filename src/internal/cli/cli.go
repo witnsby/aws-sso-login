@@ -32,6 +32,7 @@ var consoleCmd = &cobra.Command{
 		logoutWait, _ := cmd.Flags().GetInt("logout-wait")
 
 		if profileName == "" {
+			logrus.Error(helper.ErrorPofileSpecification)
 			return errors.New(helper.ErrorPofileSpecification)
 		}
 		return console(profileName, forceLogout, logoutWait)
@@ -42,14 +43,12 @@ var exportCmd = &cobra.Command{
 	Use:   "export --profile [profile-name]",
 	Short: "Prints credentials for exporting to your shell",
 	RunE: func(cmd *cobra.Command, args []string) error {
-
 		profileName, _ := cmd.Flags().GetString("profile")
 		if profileName == "" {
+			logrus.Error(helper.ErrorPofileSpecification)
 			return errors.New(helper.ErrorPofileSpecification)
 		}
-
 		return exportCredsToOutput(profileName)
-
 	},
 }
 
@@ -59,6 +58,7 @@ var importCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		profileName, _ := cmd.Flags().GetString("profile")
 		if profileName == "" {
+			logrus.Error(helper.ErrorPofileSpecification)
 			return errors.New(helper.ErrorPofileSpecification)
 		}
 		return importCreds(profileName)
@@ -71,6 +71,7 @@ var processCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		profileName, _ := cmd.Flags().GetString("profile")
 		if profileName == "" {
+			logrus.Error(helper.ErrorPofileSpecification)
 			return errors.New(helper.ErrorPofileSpecification)
 		}
 		return processCreds(profileName)
@@ -82,9 +83,7 @@ func Run() {
 		Use:   "aws-sso-login",
 		Short: "AWS SSO utility",
 	}
-
 	rootCmd.AddCommand(consoleCmd, exportCmd, importCmd, processCmd)
-
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatal(err)
 	}

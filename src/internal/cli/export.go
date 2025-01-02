@@ -9,7 +9,7 @@ import (
 // Subcommand: export
 // ----------------------------------------------------------------------------
 func exportCredsToOutput(profileName string) error {
-	profile, err := helper.RetrieveProfile(profileName)
+	profile, err := retrieveProfile(profileName)
 	if err != nil {
 		return err
 	}

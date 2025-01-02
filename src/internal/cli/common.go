@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"time"
 )
@@ -189,4 +190,72 @@ func getURL(raw string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+// retrieveProfile retrieves and validates an AWS profile from the configuration file.
+// It ensures the specified profile contains all required attributes for AWS SSO workflows.
+func retrieveProfile(profileName string) (*ini.Section, error) {
+	// Get the path to the AWS configuration file.
+	configPath, err := GetAwsConfigPath()
+	if err != nil {
+		logrus.Infof("Cannot locate AWS config file, using default path: %s", configPath)
+		return nil, err
+	}
+
+	// Load the AWS configuration file.
+	configFile, err := ini.Load(configPath)
+	if err != nil {
+		logrus.Errorf("Failed to load AWS config file at %s: %v", configPath, err)
+		return nil, err
+	}
+
+	// Build the profile section name based on the input.
+	sectionName := fmt.Sprintf("profile %s", profileName)
+
+	// Attempt to retrieve the profile section from the config file.
+	section, err := configFile.GetSection(sectionName)
+	if err != nil {
+		logrus.Errorf("Profile [%s] not found in config file: %s", sectionName, configPath)
+		return nil, fmt.Errorf("cannot find profile [%s] in %s", sectionName, configPath)
+	}
+
+	// List of required keys for the profile section.
+	requiredKeys := []string{"sso_start_url", "sso_account_id", "sso_role_name", "sso_region"}
+
+	// Validate if all required keys are present in the profile section.
+	for _, key := range requiredKeys {
+		if val := section.Key(key).String(); val == "" {
+			return nil, fmt.Errorf("missing required attribute %q in profile %s", key, profileName)
+		}
+	}
+
+	// Return the valid profile section.
+	return section, nil
+}
+
+// GetAwsConfigPath determines the file path of the AWS configuration file.
+//
+// It checks the following sources in order of priority:
+//  1. If the "AWS_CONFIG_FILE" environment variable is set, its value is returned.
+//  2. If the environment variable is not set, it retrieves the current user's home directory
+//     and constructs the default AWS configuration file path: `<HomeDirectory>/.aws/config`.
+//
+// Returns:
+// - The file path as a string if successful.
+// - An error if there is an issue retrieving the current user or resolving the path.
+func GetAwsConfigPath() (string, error) {
+	// Check if the AWS_CONFIG_FILE environment variable is set.
+	if configPath := os.Getenv("AWS_CONFIG_FILE"); configPath != "" {
+		return configPath, nil
+	}
+
+	// Retrieve the current user's home directory.
+	currentUser, err := user.Current()
+	if err != nil {
+		return "", fmt.Errorf("unable to retrieve current user: %w", err)
+	}
+
+	// Construct the default AWS configuration file path.
+	defaultConfigPath := filepath.Join(currentUser.HomeDir, ".aws", "config")
+	return defaultConfigPath, nil
 }
