@@ -44,7 +44,7 @@ This is a Go-based command-line tool designed to simplify AWS SSO (Single Sign-O
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/<your-repo-name>/aws-sso-login.git
+   git clone https://github.com/witnsby/aws-sso-login.git
    cd aws-sso-login
    ```
 
