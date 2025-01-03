@@ -6,9 +6,7 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "[dependabot]"
-      include:
-        - "scope"
-        - "title"
+      include: "scope"
 
   - package-ecosystem: "gomod"
     directory: "/"
@@ -17,9 +15,7 @@ updates:
     target-branch: "main"
     commit-message:
       prefix: "[dependabot]"
-      include:
-        - "scope"
-        - "title"
+      include: "scope"
 
   - package-ecosystem: "docker"
     directory: "pipeline"
@@ -27,7 +23,5 @@ updates:
       interval: "daily"
     commit-message:
       prefix: "[dependabot]"
-      include:
-       - "scope"
-       - "title"
+      include: "scope"
 
