@@ -48,7 +48,9 @@ func importCreds(profileName string) error {
 	return nil
 }
 
-// retrieveAndSetProfile retrieves the profile and corresponding role credentials.
+// retrieveAndSetProfile retrieves an AWS profile, fetches role credentials, and sets them for the credentials manager.
+// Automatically attempts SSO login and retries if credentials retrieval fails.
+// Returns an error if profile retrieval or SSO login ultimately fails.
 func (m *awsCredentialsManager) retrieveAndSetProfile() error {
 	profile, err := retrieveProfile(m.profileName)
 	if err != nil {
@@ -58,7 +60,9 @@ func (m *awsCredentialsManager) retrieveAndSetProfile() error {
 
 	roleCred, err := getRoleCredentials(m.profileName, profile, false)
 	if err != nil {
-		return err
+		logrus.Infof("Failed to retrieve role credentials for profile [%s]. Attempting to login again.", err)
+		_ = m.performSSOLogin()
+		return m.retrieveAndSetProfile()
 	}
 	m.roleCred = roleCred
 	return nil

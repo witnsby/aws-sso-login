@@ -5,19 +5,25 @@ import (
 	"os/exec"
 )
 
+// By default, these point to the real "exec.Command" and "fmt.Printf".
+var (
+	execCommand = exec.Command
+	printFunc   = fmt.Printf
+)
+
 // openBrowser tries to open a browser using `xdg-open`, `open`, or `start`.
 func openBrowser(targetURL string) {
 	// For Linux
-	if exec.Command("xdg-open", targetURL).Start() == nil {
+	if execCommand("xdg-open", targetURL).Start() == nil {
 		return
 	}
 	// For macOS
-	if exec.Command("open", targetURL).Start() == nil {
+	if execCommand("open", targetURL).Start() == nil {
 		return
 	}
 	// For Windows
-	if exec.Command("rundll32", "url.dll,FileProtocolHandler", targetURL).Start() == nil {
+	if execCommand("rundll32", "url.dll,FileProtocolHandler", targetURL).Start() == nil {
 		return
 	}
-	fmt.Printf("Please open your browser and navigate to: %s\n", targetURL)
+	printFunc("Please open your browser and navigate to: %s\n", targetURL)
 }

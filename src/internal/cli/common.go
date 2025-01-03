@@ -19,6 +19,20 @@ import (
 	"time"
 )
 
+// performSSOLogin runs the AWS CLI SSO login command for the specified profile and returns an error if the command fails.
+func (m *awsCredentialsManager) performSSOLogin() error {
+	cmd := exec.Command("aws", "sso", "login", "--profile", m.profileName)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to execute aws sso login: %v - %s", err, stderr.String())
+	}
+
+	return nil
+}
+
 // getRoleCredentials either reads from the local AWS CLI cache or triggers
 // the AWS CLI to refresh the cache by calling `aws sts get-caller-identity`.
 func getRoleCredentials(profileName string, profile *ini.Section, silent bool) (*model.RoleCredential, error) {
@@ -33,7 +47,7 @@ func getRoleCredentials(profileName string, profile *ini.Section, silent bool) (
 	}
 
 	// If we couldn't read them, or they're expired, attempt to refresh
-	if err := updateCachedRoleCredentials(profileName, silent); err != nil {
+	if err = updateCachedRoleCredentials(profileName, silent); err != nil {
 		return nil, err
 	}
 
@@ -62,7 +76,7 @@ func updateCachedRoleCredentials(profileName string, silent bool) error {
 
 	output, err := cmd.Output()
 	if err != nil {
-		logrus.Error(os.Stderr, stderr.String())
+		logrus.Error(stderr.String())
 		return fmt.Errorf("please login with 'aws sso login --profile=%s'", profileName)
 	}
 	if !silent {
