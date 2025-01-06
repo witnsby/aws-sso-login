@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/witnsby/aws-sso-login/src/internal/helper"
@@ -79,13 +80,22 @@ var processCmd = &cobra.Command{
 	},
 }
 
+// processCmd defines a Cobra command used to fetch and output credential process compatible JSON for a specified profile.
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version information",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println(getVersion())
+	},
+}
+
 // Run initializes the root command for the AWS SSO utility and adds subcommands before executing the CLI application.
 func Run() {
 	rootCmd := &cobra.Command{
 		Use:   "aws-sso-login",
 		Short: "AWS SSO utility",
 	}
-	rootCmd.AddCommand(consoleCmd, exportCmd, importCmd, processCmd)
+	rootCmd.AddCommand(consoleCmd, exportCmd, importCmd, processCmd, versionCmd)
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatal(err)
 	}
