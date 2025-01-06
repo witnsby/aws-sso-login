@@ -3,7 +3,7 @@ SHELL=bash
 # Default platform parameters if not specified
 OS ?= $(GOOS)
 ARCH ?= $(GOARCH)
-OUT ?= go-aws-sso
+OUT ?= aws-sso-login
 
 # Install dependencies
 .PHONY: install-deps
@@ -34,13 +34,13 @@ build:
 .PHONY: build-all
 build-all:
 	# macOS x86_64
-	$(MAKE) build OS=darwin ARCH=amd64 OUT=go-aws-sso-darwin-amd64
+	$(MAKE) build OS=darwin ARCH=amd64 OUT=$(OUT)_darwin_amd64
 	# macOS arm64
-	$(MAKE) build OS=darwin ARCH=arm64 OUT=go-aws-sso-darwin-arm64
+	$(MAKE) build OS=darwin ARCH=arm64 OUT=$(OUT)_darwin_arm64
 	# Linux x86_64
-	$(MAKE) build OS=linux ARCH=amd64 OUT=go-aws-sso-linux-amd64
+	$(MAKE) build OS=linux ARCH=amd64 OUT=$(OUT)_linux_amd64
 	# Linux arm64
-	$(MAKE) build OS=linux ARCH=arm64 OUT=go-aws-sso-linux-arm64
+	$(MAKE) build OS=linux ARCH=arm64 OUT=$(OUT)_linux_arm64
 
 # Help (optional)
 help:
