@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"github.com/witnsby/aws-sso-login/src/internal/helper"
 	"net/url"
 	"time"
@@ -9,66 +10,59 @@ import (
 
 // console generates a sign-in URL for an AWS SSO console session and opens it in a browser.
 // It optionally logs out of an existing session before opening the new one.
-func console(profileName string, forceLogout bool, logoutWait int) error {
+func console(profile string, forceLogout bool, logoutWait int) error {
 	// Retrieve profile details
-	profile, err := retrieveProfile(profileName)
+	manager := awsCredentialsManager{profileName: profile}
+	// Retrieve AWS profile and credentials
+	if err := manager.retrieveAndSetProfile(); err != nil {
+		return err
+	}
+	signinToken, err := getSigninToken(manager.roleCred)
 	if err != nil {
 		return err
 	}
+	manager.signinToken = signinToken
 
-	// Fetch credentials and sign-in token
-	roleCred, err := getRoleCredentials(profileName, profile, false)
-	if err != nil {
+	manager.region = manager.profile.Key("sso_region").String()
+	manager.account = manager.profile.Key("sso_account_id").String()
+	if err = manager.validateProfileParams(); err != nil {
+		logrus.Error(err)
 		return err
 	}
-	signinToken, err := getSigninToken(roleCred)
-	if err != nil {
-		return err
-	}
-
-	// Extract required parameters
-	region := profile.Key("sso_region").String()
-	account := profile.Key("sso_account_id").String()
-	if err := validateProfileParams(profileName, region, account); err != nil {
-		return err
-	}
-
 	// Construct the sign-in URL
-	signinURL := generateSigninURL(region, account, signinToken)
-
+	signinURL := manager.generateSigninURL()
 	// Handle optional logout
-	handleLogout(region, forceLogout, logoutWait)
-
+	manager.handleLogout(forceLogout, logoutWait)
 	// Open the new session in a browser
 	openBrowser(signinURL)
 	return nil
 }
 
-// validateProfileParams checks required profile parameters.
-func validateProfileParams(profileName, region, account string) error {
-	if region == "" || account == "" {
-		return fmt.Errorf("sso_region or sso_account_id is missing for profile %s", profileName)
-	}
-	return nil
-}
-
 // generateSigninURL builds the AWS console sign-in URL.
-func generateSigninURL(region, account, signinToken string) string {
+func (m *awsCredentialsManager) generateSigninURL() string {
 	params := url.Values{}
 	params.Set("Action", "login")
 	params.Set("Issuer", "-aws-sso-console")
-	params.Set("Destination", helper.ConsoleUrl(region))
-	params.Set("SigninToken", signinToken)
-	return fmt.Sprintf("https://%s.signin.aws.amazon.com/federation?%s", account, params.Encode())
+	params.Set("Destination", helper.ConsoleUrl(m.region))
+	params.Set("SigninToken", m.signinToken)
+	return fmt.Sprintf("https://%s.signin.aws.amazon.com/federation?%s", m.account, params.Encode())
 }
 
 // handleLogout optionally logs out of the existing session.
-func handleLogout(region string, forceLogout bool, logoutWait int) {
+func (m *awsCredentialsManager) handleLogout(forceLogout bool, logoutWait int) {
 	if forceLogout || logoutWait > 0 {
-		logoutURL := helper.ConsoleLogout(region)
+		logoutURL := helper.ConsoleLogout(m.region)
 		openBrowser(logoutURL)
 		if logoutWait > 0 {
 			time.Sleep(time.Duration(logoutWait) * time.Second)
 		}
 	}
+}
+
+// validateProfileParams checks required profile parameters.
+func (m *awsCredentialsManager) validateProfileParams() error {
+	if m.region == "" || m.account == "" {
+		return fmt.Errorf("sso_region or sso_account_id is missing for profile %s", m.profileName)
+	}
+	return nil
 }

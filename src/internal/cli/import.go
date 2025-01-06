@@ -4,19 +4,8 @@ import (
 	"github.com/go-ini/ini"
 	"github.com/sirupsen/logrus"
 	"github.com/witnsby/aws-sso-login/src/internal/helper"
-	"github.com/witnsby/aws-sso-login/src/internal/model"
 	"os"
 )
-
-// importCreds retrieves AWS credentials for the specified profile,
-// writes them to the AWS credentials file under that profile section,
-// and ensures the credentials are saved properly.
-type awsCredentialsManager struct {
-	profileName     string
-	credentialsPath string
-	credsFile       *ini.File
-	roleCred        *model.RoleCredential
-}
 
 // importCreds retrieves AWS credentials for a profile,
 // writes them in the credentials file, and saves the updated file.
@@ -45,26 +34,6 @@ func importCreds(profileName string) error {
 	}
 
 	logrus.Infof("Wrote credentials to profile [%s] in %s\n", manager.profileName, manager.credentialsPath)
-	return nil
-}
-
-// retrieveAndSetProfile retrieves an AWS profile, fetches role credentials, and sets them for the credentials manager.
-// Automatically attempts SSO login and retries if credentials retrieval fails.
-// Returns an error if profile retrieval or SSO login ultimately fails.
-func (m *awsCredentialsManager) retrieveAndSetProfile() error {
-	profile, err := retrieveProfile(m.profileName)
-	if err != nil {
-		logrus.Info(err)
-		return err
-	}
-
-	roleCred, err := getRoleCredentials(m.profileName, profile, false)
-	if err != nil {
-		logrus.Infof("Failed to retrieve role credentials for profile [%s]. Attempting to login again.", err)
-		_ = m.performSSOLogin()
-		return m.retrieveAndSetProfile()
-	}
-	m.roleCred = roleCred
 	return nil
 }
 
