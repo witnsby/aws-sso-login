@@ -19,6 +19,44 @@ import (
 	"time"
 )
 
+// importCreds retrieves AWS credentials for the specified profile,
+// writes them to the AWS credentials file under that profile section,
+// and ensures the credentials are saved properly.
+type awsCredentialsManager struct {
+	profileName     string
+	credentialsPath string
+	credsFile       *ini.File
+	roleCred        *model.RoleCredential
+	profile         *ini.Section
+	region          string
+	account         string
+	signinToken     string
+}
+
+// retrieveAndSetProfile retrieves an AWS profile, fetches role credentials, and sets them for the credentials manager.
+// Automatically attempts SSO login and retries if credentials retrieval fails.
+// Returns an error if profile retrieval or SSO login ultimately fails.
+func (m *awsCredentialsManager) retrieveAndSetProfile() error {
+	profile, err := retrieveProfile(m.profileName)
+	if err != nil {
+		logrus.Info(err)
+		return err
+	}
+	m.profile = profile
+
+	roleCred, err := getRoleCredentials(m.profileName, m.profile, false)
+	if err != nil {
+		logrus.Infof("Failed to retrieve role credentials for profile [%s]. Attempting to login again.", err)
+		err = m.performSSOLogin()
+		if err != nil {
+			logrus.Info(err)
+		}
+		return m.retrieveAndSetProfile()
+	}
+	m.roleCred = roleCred
+	return nil
+}
+
 // performSSOLogin runs the AWS CLI SSO login command for the specified profile and returns an error if the command fails.
 func (m *awsCredentialsManager) performSSOLogin() error {
 	cmd := exec.Command("aws", "sso", "login", "--profile", m.profileName)
