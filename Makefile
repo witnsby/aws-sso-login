@@ -5,6 +5,11 @@ OS ?= $(GOOS)
 ARCH ?= $(GOARCH)
 OUT ?= aws-sso-login
 
+VERSION=$(shell git describe --tags --abbrev=0 || echo "v0.0.0")
+COMMIT_HASH=$(shell git rev-parse --short HEAD || echo "unknown")
+LDFLAGS = -X github.com/witnsby/aws-sso-login/src/internal/helper.Version=$(VERSION) \
+          -X github.com/witnsby/aws-sso-login/src/internal/helper.CommitHash=$(COMMIT_HASH)
+
 # Install dependencies
 .PHONY: install-deps
 install-deps:
@@ -28,19 +33,19 @@ cover:
 build:
 	@set -e
 	@echo "Building $(OUT) for OS=$(OS) ARCH=$(ARCH)"
-	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -o ./tmp/$(OUT) ./src/cmd/bin/main.go || exit 1;
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags "$(LDFLAGS)" -o ./tmp/$(OUT) ./src/cmd/bin/main.go || exit 1;
 
 # Build all variants
 .PHONY: build-all
 build-all:
 	# macOS x86_64
-	$(MAKE) build OS=darwin ARCH=amd64 OUT=$(OUT)_darwin_amd64
+	$(MAKE) build OS=darwin ARCH=amd64 OUT=$(OUT)_darwin_amd64 LDFLAGS="$(LDFLAGS)"
 	# macOS arm64
-	$(MAKE) build OS=darwin ARCH=arm64 OUT=$(OUT)_darwin_arm64
+	$(MAKE) build OS=darwin ARCH=arm64 OUT=$(OUT)_darwin_arm64 LDFLAGS="$(LDFLAGS)"
 	# Linux x86_64
-	$(MAKE) build OS=linux ARCH=amd64 OUT=$(OUT)_linux_amd64
+	$(MAKE) build OS=linux ARCH=amd64 OUT=$(OUT)_linux_amd64 LDFLAGS="$(LDFLAGS)"
 	# Linux arm64
-	$(MAKE) build OS=linux ARCH=arm64 OUT=$(OUT)_linux_arm64
+	$(MAKE) build OS=linux ARCH=arm64 OUT=$(OUT)_linux_arm64 LDFLAGS="$(LDFLAGS)"
 
 # Help (optional)
 help:

@@ -7,7 +7,9 @@ const (
 	ISO8601WithFixedZone = "2006-01-02T15:04:05Z0700"
 	ISO8601WithUTC       = "2006-01-02T15:04:05UTC"
 )
-const Version = "0.0.5"
+
+var Version = "dev"
+var CommitHash = "local"
 
 var TimeLayouts = []string{
 	ISO8601WithOffset,
