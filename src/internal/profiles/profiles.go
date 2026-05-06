@@ -10,7 +10,7 @@ import (
 
 // Profile holds the SSO-relevant fields for a single AWS named profile.
 type Profile struct {
-	Name      string // e.g. "hipaa-master"
+	Name      string // e.g. "dev-account"
 	AccountID string // sso_account_id
 	RoleName  string // sso_role_name
 	Region    string // sso_region

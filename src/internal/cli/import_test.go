@@ -67,7 +67,7 @@ func TestResolveProfileName_FlagSet(t *testing.T) {
 // TestResolveProfileName_FromPicker verifies that an empty flag triggers the
 // selector against the SSO profiles parsed from AWS_CONFIG_FILE.
 func TestResolveProfileName_FromPicker(t *testing.T) {
-	cfg := `[profile hipaa-master]
+	cfg := `[profile dev-account]
 sso_start_url = https://example.awsapps.com/start
 sso_region = us-east-1
 sso_account_id = 123456789012
@@ -81,15 +81,15 @@ sso_role_name = ReadOnly
 `
 	writeAwsConfig(t, cfg)
 
-	rec := &recordingSelector{inner: fakeSelector{choice: "hipaa-master"}}
+	rec := &recordingSelector{inner: fakeSelector{choice: "dev-account"}}
 	swapDefaultSelector(t, rec)
 
 	got, err := resolveProfileName("")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != "hipaa-master" {
-		t.Fatalf("expected %q, got %q", "hipaa-master", got)
+	if got != "dev-account" {
+		t.Fatalf("expected %q, got %q", "dev-account", got)
 	}
 	if rec.calls != 1 {
 		t.Fatalf("expected selector to be called once, got %d", rec.calls)
@@ -98,8 +98,8 @@ sso_role_name = ReadOnly
 		t.Fatalf("expected selector to receive 2 profiles, got %d", len(rec.lastIn))
 	}
 	names := []string{rec.lastIn[0].Name, rec.lastIn[1].Name}
-	if !contains(names, "hipaa-master") || !contains(names, "sandbox") {
-		t.Fatalf("expected profiles [hipaa-master sandbox], got %v", names)
+	if !contains(names, "dev-account") || !contains(names, "sandbox") {
+		t.Fatalf("expected profiles [dev-account sandbox], got %v", names)
 	}
 }
 
@@ -133,7 +133,7 @@ credential_process = /bin/true
 // TestResolveProfileName_SelectorError verifies that errors from the selector
 // (e.g. user cancelled) are surfaced with descriptive context.
 func TestResolveProfileName_SelectorError(t *testing.T) {
-	cfg := `[profile hipaa-master]
+	cfg := `[profile dev-account]
 sso_start_url = https://example.awsapps.com/start
 sso_region = us-east-1
 sso_account_id = 123456789012
