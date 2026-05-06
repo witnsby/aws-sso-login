@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/go-ini/ini"
 	"github.com/sirupsen/logrus"
@@ -16,8 +17,15 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"time"
 )
+
+// errSSORoleNoAccess indicates that the AWS SSO identity is authenticated but
+// the configured role is not assigned to the user (e.g. AWS SSO returned
+// ForbiddenException / AccessDeniedException). Re-running `aws sso login`
+// cannot resolve this; the user must obtain access from an administrator.
+var errSSORoleNoAccess = errors.New("no access to the configured SSO role")
 
 // importCreds retrieves AWS credentials for the specified profile,
 // writes them to the AWS credentials file under that profile section,
@@ -34,8 +42,11 @@ type awsCredentialsManager struct {
 }
 
 // retrieveAndSetProfile retrieves an AWS profile, fetches role credentials, and sets them for the credentials manager.
-// Automatically attempts SSO login and retries if credentials retrieval fails.
-// Returns an error if profile retrieval or SSO login ultimately fails.
+// On a recoverable failure (e.g. expired SSO token) it performs a single
+// `aws sso login` attempt and retries credential retrieval once. On an
+// unrecoverable failure (the SSO role is not assigned to the user, surfaced
+// as errSSORoleNoAccess) it returns immediately without invoking the login
+// flow, to avoid an infinite re-prompt loop.
 func (m *awsCredentialsManager) retrieveAndSetProfile() error {
 	profile, err := retrieveProfile(m.profileName)
 	if err != nil {
@@ -45,13 +56,23 @@ func (m *awsCredentialsManager) retrieveAndSetProfile() error {
 	m.profile = profile
 
 	roleCred, err := getRoleCredentials(m.profileName, m.profile, false)
+	if err == nil {
+		m.roleCred = roleCred
+		return nil
+	}
+
+	if errors.Is(err, errSSORoleNoAccess) {
+		return err
+	}
+
+	logrus.Infof("Credentials for profile [%s] not available, attempting `aws sso login`...", m.profileName)
+	if loginErr := m.performSSOLogin(); loginErr != nil {
+		return loginErr
+	}
+
+	roleCred, err = getRoleCredentials(m.profileName, m.profile, false)
 	if err != nil {
-		logrus.Infof("Failed to retrieve role credentials for profile [%s]. Attempting to login again.", err)
-		err = m.performSSOLogin()
-		if err != nil {
-			logrus.Info(err)
-		}
-		return m.retrieveAndSetProfile()
+		return err
 	}
 	m.roleCred = roleCred
 	return nil
@@ -106,6 +127,11 @@ func getRoleCredentials(profileName string, profile *ini.Section, silent bool) (
 
 // updateCachedRoleCredentials calls `aws sts get-caller-identity --profile=XYZ`.
 // This triggers the AWS CLI's SSO logic to refresh ~/.aws/cli/cache.
+//
+// If the AWS CLI exits with a "no access" condition (ForbiddenException /
+// AccessDeniedException returned by the SSO GetRoleCredentials API), the
+// returned error wraps errSSORoleNoAccess so callers can distinguish it from
+// transient/expired-token failures.
 func updateCachedRoleCredentials(profileName string, silent bool) error {
 	cmd := exec.Command("aws", "sts", "get-caller-identity",
 		"--query", "Arn", "--output", "text", "--profile", profileName)
@@ -114,13 +140,32 @@ func updateCachedRoleCredentials(profileName string, silent bool) error {
 
 	output, err := cmd.Output()
 	if err != nil {
-		logrus.Error(stderr.String())
+		stderrStr := strings.TrimSpace(stderr.String())
+		if stderrStr != "" {
+			logrus.Debug(stderrStr)
+		}
+		if isSSORoleNoAccessStderr(stderrStr) {
+			return fmt.Errorf("%w for profile %q", errSSORoleNoAccess, profileName)
+		}
 		return fmt.Errorf("please login with 'aws sso login --profile=%s'", profileName)
 	}
 	if !silent {
 		fmt.Printf("Updated credentials for: %s\n", string(output))
 	}
 	return nil
+}
+
+// isSSORoleNoAccessStderr returns true when the AWS CLI stderr indicates the
+// authenticated user has no access to the configured SSO role. These cases
+// cannot be resolved by re-running `aws sso login`.
+func isSSORoleNoAccessStderr(stderr string) bool {
+	if stderr == "" {
+		return false
+	}
+	lower := strings.ToLower(stderr)
+	return strings.Contains(lower, "forbiddenexception") ||
+		strings.Contains(lower, "accessdeniedexception") ||
+		strings.Contains(lower, "no access")
 }
 
 func buildCacheFilePath(profile *ini.Section) (string, error) {
