@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository.
 
 ## Project overview
 
-`aws-sso-login` is a Go CLI that simplifies AWS SSO authentication and credential management. It supports console login, exporting credentials as shell env vars, importing them into `~/.aws/credentials`, and emitting `credential_process`-compatible JSON.
+`aws-sso-login` is a Go CLI that simplifies AWS SSO authentication and credential management. It supports console login, exporting credentials as shell env vars, importing them into `~/.aws/credentials`, and emitting `credential_process`-compatible JSON. The `import` command accepts an optional `--profile` flag; when omitted on macOS/Linux, an interactive picker (powered by `charmbracelet/huh`) lists all SSO-enabled profiles from `~/.aws/config`.
 
 - **Language**: Go 1.23+
 - **Module**: `github.com/witnsby/aws-sso-login`
@@ -30,14 +30,16 @@ Keep new code under `src/` and prefer `src/internal/...` for packages that shoul
 
 ## Common commands
 
-| Task                 | Command                       |
-| -------------------- | ----------------------------- |
-| Install deps         | `make install-deps`           |
-| Run tests            | `make tests`                  |
-| Coverage (HTML)      | `make cover`                  |
-| Build (host)         | `make build`                  |
-| Build all platforms  | `make build-all`              |
-| Run binary           | `./tmp/aws-sso-login --help`  |
+| Task                        | Command                                          |
+| --------------------------- | ------------------------------------------------ |
+| Install deps                | `make install-deps`                              |
+| Run tests                   | `make tests`                                     |
+| Coverage (HTML)             | `make cover`                                     |
+| Build (host)                | `make build`                                     |
+| Build all platforms         | `make build-all`                                 |
+| Run binary                  | `./tmp/aws-sso-login --help`                     |
+| Import (direct profile)     | `./tmp/aws-sso-login import --profile <name>`    |
+| Import (interactive picker) | `./tmp/aws-sso-login import`                     |
 
 The build output goes to `./tmp/`. Cross-compile targets cover `darwin/amd64`, `darwin/arm64`, `linux/amd64`, `linux/arm64`.
 

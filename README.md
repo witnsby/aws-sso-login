@@ -15,6 +15,7 @@ This is a Go-based command-line tool designed to simplify AWS SSO (Single Sign-O
 
 ### 3. Import Credentials
 - Fetches and saves credentials for a specified profile into the AWS credentials file.
+- When `--profile` is omitted, presents an interactive picker of SSO-enabled profiles (macOS/Linux).
 - Ensures the credentials file is properly updated.
 
 ### 4. Credential Process JSON
@@ -124,20 +125,35 @@ export AWS_DEFAULT_REGION=<Region>
 
 ### **Import Command (`import`)**
 
-Fetches credentials for the specified AWS profile and writes them to the AWS credentials file.
+Fetches credentials for the specified AWS profile and writes them to the AWS credentials file (`~/.aws/credentials`).
 
 #### Usage:
 ```bash
-aws-sso-login import --profile <profile-name>
+aws-sso-login import [--profile <profile-name>]
 ```
 
-#### Description:
-This command writes the credentials to the AWS credentials file (`~/.aws/credentials`) under the specified profile.
+`--profile` is optional. When provided, the import runs non-interactively against that profile. When omitted, an interactive picker is presented (see below).
 
-#### Example:
+#### Example — direct profile:
 ```bash
 aws-sso-login import --profile dev-account
 ```
+
+#### Interactive selection
+
+When `--profile` is omitted on macOS or Linux, the tool reads `~/.aws/config`, filters to profiles that have `sso_start_url` set, sorts them alphabetically, and presents a picker:
+
+```
+? Select an AWS SSO profile:
+  > dev-account                  123456789012  AdminAccess
+    prod-readonly                123456789012  ReadOnlyAccess
+    staging-engineer             123456789012  EngineerAccess
+```
+
+Use the arrow keys to move and `Enter` to confirm. The selected profile is then imported exactly as if `--profile <name>` had been passed.
+
+> **Note:** Only profiles with `sso_start_url` present in `~/.aws/config` are shown.
+> The interactive picker requires a TTY (macOS and Linux). Windows is untested.
 
 ---
 

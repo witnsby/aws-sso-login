@@ -1,11 +1,45 @@
 package cli
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/go-ini/ini"
 	"github.com/sirupsen/logrus"
 	"github.com/witnsby/aws-sso-login/src/internal/helper"
-	"os"
+	"github.com/witnsby/aws-sso-login/src/internal/profiles"
 )
+
+// defaultSelector is the production Selector used when --profile is omitted.
+// It is a package-level seam so tests can swap in a deterministic fake.
+var defaultSelector Selector = HuhSelector{}
+
+// resolveProfileName returns the AWS profile name to import credentials for.
+//
+// If flagValue is non-empty, it is returned verbatim (the explicit --profile
+// flag bypasses the interactive selector). Otherwise, the AWS config file is
+// parsed for SSO-enabled profiles and the user is prompted via defaultSelector.
+func resolveProfileName(flagValue string) (string, error) {
+	if flagValue != "" {
+		return flagValue, nil
+	}
+
+	configPath, err := GetAwsConfigPath()
+	if err != nil {
+		return "", fmt.Errorf("could not determine AWS config path: %w", err)
+	}
+
+	ssoProfiles, err := profiles.ListSSOProfiles(configPath)
+	if err != nil {
+		return "", fmt.Errorf("could not list SSO profiles: %w", err)
+	}
+
+	name, err := defaultSelector.Pick(ssoProfiles)
+	if err != nil {
+		return "", fmt.Errorf("could not select profile: %w", err)
+	}
+	return name, nil
+}
 
 // importCreds retrieves AWS credentials for a profile,
 // writes them in the credentials file, and saves the updated file.

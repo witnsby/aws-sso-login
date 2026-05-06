@@ -16,7 +16,7 @@ func init() {
 
 	exportCmd.Flags().String("profile", "", "Name of the AWS profile")
 
-	importCmd.Flags().String("profile", "", "Name of the AWS profile")
+	importCmd.Flags().String("profile", "", "AWS profile name (omit to choose interactively)")
 
 	processCmd.Flags().String("profile", "", "Name of the AWS profile")
 }
@@ -52,15 +52,18 @@ var exportCmd = &cobra.Command{
 	},
 }
 
-// importCmd defines a Cobra command to fetch AWS credentials for a specified profile and write them to the local credentials file.
+// importCmd defines a Cobra command to fetch AWS credentials for a profile and
+// write them to the local credentials file. The --profile flag is optional:
+// when omitted, the user is prompted to pick an SSO-enabled profile from
+// ~/.aws/config via the package-level defaultSelector.
 var importCmd = &cobra.Command{
-	Use:   "import --profile [profile-name]",
+	Use:   "import [--profile profile-name]",
 	Short: "Fetches new credentials and writes them to the local credentials file",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		profileName, _ := cmd.Flags().GetString("profile")
-		if profileName == "" {
-			logrus.Error(helper.ErrorPofileSpecification)
-			return errors.New(helper.ErrorPofileSpecification)
+		flagValue, _ := cmd.Flags().GetString("profile")
+		profileName, err := resolveProfileName(flagValue)
+		if err != nil {
+			return err
 		}
 		return importCreds(profileName)
 	},
