@@ -3,6 +3,8 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/witnsby/aws-sso-login/src/internal/helper"
@@ -97,9 +99,28 @@ func Run() {
 	rootCmd := &cobra.Command{
 		Use:   "aws-sso-login",
 		Short: "AWS SSO utility",
+		// SilenceUsage avoids dumping the Usage block on runtime errors
+		// (it is only useful for flag/argument parsing failures, which
+		// cobra still prints separately). SilenceErrors prevents the
+		// duplicate "Error: ..." line — Run() owns user-facing error
+		// rendering below.
+		SilenceUsage:  true,
+		SilenceErrors: true,
 	}
 	rootCmd.AddCommand(consoleCmd, exportCmd, importCmd, processCmd, versionCmd)
 	if err := rootCmd.Execute(); err != nil {
-		logrus.Fatal(err)
+		reportAndExit(err)
 	}
+}
+
+// reportAndExit prints a single concise message for known failure modes and
+// exits with status 1. Detailed/verbose context is left to debug-level logs.
+func reportAndExit(err error) {
+	if errors.Is(err, errSSORoleNoAccess) {
+		logrus.Errorf("No access: the configured SSO role is not assigned to your user. "+
+			"Ask your AWS administrator to grant access. (%v)", err)
+		os.Exit(1)
+	}
+	logrus.Error(err)
+	os.Exit(1)
 }

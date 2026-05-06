@@ -34,6 +34,7 @@ This is a Go-based command-line tool designed to simplify AWS SSO (Single Sign-O
     - [Process Command (`process`)](#process-command-process)
 - [Configuration](#configuration)
 - [Logging](#logging)
+- [Error handling](#error-handling)
 - [Development](#development)
 - [Contributing](#contributing)
 - [License](#license)
@@ -210,6 +211,21 @@ This project uses the [Logrus](https://github.com/sirupsen/logrus) logging libra
 
 - Logs are output to `stdout` by default for both errors and normal operations.
 - Debugging information is logged for all major processes (e.g., credential retrieval, profile validation).
+
+---
+
+## **Error handling**
+
+- **Recoverable errors** (e.g., expired SSO token): the CLI runs `aws sso login`
+  once and retries credential retrieval. If the login itself fails, the error
+  is reported and the command exits.
+- **Unrecoverable errors** (the SSO role is not assigned to your user — AWS
+  returns `ForbiddenException` / `AccessDeniedException` from
+  `GetRoleCredentials`): the CLI does **not** attempt `aws sso login`. It
+  exits immediately with a single line indicating the role is unavailable and
+  prompting you to contact your AWS administrator. Raw AWS CLI stderr is
+  available at debug log level.
+- All commands exit with status `1` on failure.
 
 ---
 

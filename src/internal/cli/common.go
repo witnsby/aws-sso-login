@@ -62,23 +62,16 @@ func (m *awsCredentialsManager) retrieveAndSetProfile() error {
 	}
 
 	if errors.Is(err, errSSORoleNoAccess) {
-		logrus.Errorf("No access to profile [%s]: the configured SSO role is not assigned to your user. "+
-			"Contact your AWS administrator to request access.", m.profileName)
 		return err
 	}
 
-	logrus.Infof("Failed to retrieve role credentials for profile [%s]: %v. Attempting to login again.", m.profileName, err)
+	logrus.Infof("Credentials for profile [%s] not available, attempting `aws sso login`...", m.profileName)
 	if loginErr := m.performSSOLogin(); loginErr != nil {
-		logrus.Errorf("SSO login for profile [%s] failed: %v", m.profileName, loginErr)
 		return loginErr
 	}
 
 	roleCred, err = getRoleCredentials(m.profileName, m.profile, false)
 	if err != nil {
-		if errors.Is(err, errSSORoleNoAccess) {
-			logrus.Errorf("No access to profile [%s]: the configured SSO role is not assigned to your user. "+
-				"Contact your AWS administrator to request access.", m.profileName)
-		}
 		return err
 	}
 	m.roleCred = roleCred
@@ -148,13 +141,13 @@ func updateCachedRoleCredentials(profileName string, silent bool) error {
 	output, err := cmd.Output()
 	if err != nil {
 		stderrStr := strings.TrimSpace(stderr.String())
-		if isSSORoleNoAccessStderr(stderrStr) {
-			return fmt.Errorf("profile %q: %w (aws cli: %s)", profileName, errSSORoleNoAccess, stderrStr)
-		}
 		if stderrStr != "" {
 			logrus.Debug(stderrStr)
 		}
-		return fmt.Errorf("please login with 'aws sso login --profile=%s': %s", profileName, stderrStr)
+		if isSSORoleNoAccessStderr(stderrStr) {
+			return fmt.Errorf("%w for profile %q", errSSORoleNoAccess, profileName)
+		}
+		return fmt.Errorf("please login with 'aws sso login --profile=%s'", profileName)
 	}
 	if !silent {
 		fmt.Printf("Updated credentials for: %s\n", string(output))
