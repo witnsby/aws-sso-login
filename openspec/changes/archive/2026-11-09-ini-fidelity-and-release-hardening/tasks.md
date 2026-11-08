@@ -55,7 +55,7 @@
 
 ## 9. Pull request
 
-- [ ] 9.1 Open a PR from this branch to `main` whose description links the change id `ini-fidelity-and-release-hardening` and lists `Closes #39`, `Closes #40`, `Closes #41`, `Closes #42`, `Closes #43`, `Closes #44`, `Closes #45`; verify CI is green, including the toolchain assertion and pin check
+- [x] 9.1 Open a PR from this branch to `main` whose description links the change id `ini-fidelity-and-release-hardening` and lists `Closes #39`, `Closes #40`, `Closes #41`, `Closes #42`, `Closes #43`, `Closes #44`, `Closes #45`; verify CI is green, including the toolchain assertion and pin check
 
 ## Workflow follow-up
 
