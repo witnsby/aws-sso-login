@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -166,26 +167,44 @@ func isSSORoleNoAccessStderr(stderr string) bool {
 		strings.Contains(lower, "no access")
 }
 
+// buildCacheFilePath returns the AWS CLI cache file that holds the role
+// credentials of profile.
 func buildCacheFilePath(profile profiles.Profile) (string, error) {
 	cachePath, err := helper.AwsCliCachePath()
 	if err != nil {
 		return "", err
 	}
+	key, err := cacheKey(profile)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(cachePath, key+".json"), nil
+}
 
-	// Build a cache key (sha1 of sorted JSON: {startUrl, roleName, accountId})
+// cacheKey reproduces botocore's SSOCredentialFetcher._create_cache_key:
+// the SHA-1 hex digest of compact JSON with sorted keys holding accountId,
+// roleName and either sessionName (sso-session profiles) or startUrl
+// (legacy profiles). encoding/json sorts map keys and emits compact output;
+// HTML escaping is disabled to match Python's json.dumps.
+func cacheKey(profile profiles.Profile) (string, error) {
 	args := map[string]string{
-		"startUrl":  profile.StartURL,
-		"roleName":  profile.RoleName,
 		"accountId": profile.AccountID,
+		"roleName":  profile.RoleName,
+	}
+	if profile.SessionName != "" {
+		args["sessionName"] = profile.SessionName
+	} else {
+		args["startUrl"] = profile.StartURL
 	}
 
-	b, _ := json.Marshal(args)
-	h := sha1.New()
-	h.Write(b)
-	cacheKey := fmt.Sprintf("%x", h.Sum(nil))
-
-	// Construct the path
-	return filepath.Join(cachePath, cacheKey+".json"), nil
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(args); err != nil {
+		return "", fmt.Errorf("encoding cache key: %w", err)
+	}
+	sum := sha1.Sum(bytes.TrimSuffix(buf.Bytes(), []byte("\n")))
+	return hex.EncodeToString(sum[:]), nil
 }
 
 // getCachedRoleCredentials looks up ~/.aws/cli/cache/<sha1>.json

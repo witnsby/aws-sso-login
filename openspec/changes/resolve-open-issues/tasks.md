@@ -19,9 +19,9 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 3. Cache key for sso-session profiles
 
-- [ ] 3.1 Build the cache key from `profiles.Profile`: `sessionName` when set, otherwise `startUrl`, plus `accountId` and `roleName`. Verify with golden SHA-1 tests for both formats, computed independently with `printf '%s' '<json>' | shasum` and recorded in the test.
-- [ ] 3.2 Add cache read tests: valid file, missing file, malformed JSON. Verify they run against a temp `HOME`.
-- [ ] 3.3 Commit `fix: use sessionName in AWS CLI cache key for sso-session profiles` with `Closes #23`.
+- [x] 3.1 Build the cache key from `profiles.Profile`: `sessionName` when set, otherwise `startUrl`, plus `accountId` and `roleName`. Verify with golden SHA-1 tests for both formats, computed independently with `printf '%s' '<json>' | shasum` and recorded in the test.
+- [x] 3.2 Add cache read tests: valid file, missing file, malformed JSON. Verify they run against a temp `HOME`.
+- [x] 3.3 Commit `fix: use sessionName in AWS CLI cache key for sso-session profiles` with `Closes #23`.
 
 ## 4. Expiry margin
 

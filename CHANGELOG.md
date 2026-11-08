@@ -10,7 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Profiles that reference an `[sso-session <name>]` section (the default
   format of `aws configure sso`) are now supported by every command and
-  listed in the interactive picker. (#23)
+  listed in the interactive picker. Their cached credentials are found
+  with the same cache key the AWS CLI uses (`sessionName` instead of
+  `startUrl`). (#23)
 - The `default` profile now works with `--profile default` and from the
   picker; it is read from `[default]`, falling back to `[profile default]`.
   (#22)
