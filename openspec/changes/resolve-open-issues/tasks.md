@@ -25,9 +25,9 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 4. Expiry margin
 
-- [ ] 4.1 Add `minCredentialValidity = 5 * time.Minute` and `time.RFC3339` parsing, and make `isExpired` use `now()`. Verify with table tests: unparsable, already expired, 2 minutes left, 30 minutes left, and the exact boundary.
-- [ ] 4.2 Test the refresh path: near-expiry cache → runner called once → fresh cache returned; refresh still near expiry → "expired" error. Verify with the fake runner and a scripted cache update.
-- [ ] 4.3 Add a CHANGELOG `Fixed` entry. Commit `fix: refresh credentials that expire within five minutes` with `Closes #27`.
+- [x] 4.1 Add `minCredentialValidity = 5 * time.Minute` and `time.RFC3339` parsing, and make `isExpired` use `now()`. Verify with table tests: unparsable, already expired, 2 minutes left, 30 minutes left, and the exact boundary.
+- [x] 4.2 Test the refresh path: near-expiry cache → runner called once → fresh cache returned; refresh still near expiry → "expired" error. Verify with the fake runner and a scripted cache update.
+- [x] 4.3 Add a CHANGELOG `Fixed` entry. Commit `fix: refresh credentials that expire within five minutes` with `Closes #27`.
 
 ## 5. Missing AWS CLI
 

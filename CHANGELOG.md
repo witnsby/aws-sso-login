@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The `default` profile now works with `--profile default` and from the
   picker; it is read from `[default]`, falling back to `[profile default]`.
   (#22)
+- Cached credentials that expire within 5 minutes are now refreshed instead
+  of being returned by `export`, `import`, `process` and `console`. (#27)
 - `import` and `console` no longer enter an infinite `aws sso login` retry loop
   when the configured SSO role is not assigned to the user. The CLI now detects
   `ForbiddenException` / `AccessDeniedException` from `GetRoleCredentials` and

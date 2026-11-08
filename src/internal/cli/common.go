@@ -230,13 +230,21 @@ func getCachedRoleCredentials(profile profiles.Profile) (*model.RoleCredential, 
 	return &raw.Credentials, nil
 }
 
+// minCredentialValidity is how long credentials must remain valid to be
+// returned. Credentials closer to expiry are refreshed. botocore refreshes
+// cached SSO credentials within 15 minutes of expiry, so a refresh always
+// replaces credentials rejected by this margin.
+const minCredentialValidity = 5 * time.Minute
+
+// isExpired reports whether credentials with the given expiration time must
+// be refreshed: the time cannot be parsed or is less than
+// minCredentialValidity away.
 func isExpired(expirationTime string) bool {
 	parsedTime, err := parseExpirationTime(expirationTime)
 	if err != nil {
-		// If parsing fails, assume it's expired so user can refresh
 		return true
 	}
-	return now().After(parsedTime)
+	return parsedTime.Sub(now()) < minCredentialValidity
 }
 
 // parseExpirationTime attempts to parse a string into a time.Time using multiple layouts

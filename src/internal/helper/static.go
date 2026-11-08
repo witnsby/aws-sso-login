@@ -1,5 +1,7 @@
 package helper
 
+import "time"
+
 const ErrorPofileSpecification = "must specify --profile"
 const SessionDuration = "43200" //12 hours
 const (
@@ -12,6 +14,7 @@ var Version = "dev"
 var CommitHash = "local"
 
 var TimeLayouts = []string{
+	time.RFC3339,
 	ISO8601WithOffset,
 	ISO8601WithFixedZone,
 	ISO8601WithUTC,
