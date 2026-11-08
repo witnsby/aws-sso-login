@@ -1,0 +1,67 @@
+schema: spec-driven
+
+# Project context: constraints an agent cannot infer by reading the code.
+# General documentation lives in README.md and AGENTS.md; do not duplicate it here.
+context: |
+  Language: write every OpenSpec artifact (proposal, specs, design, tasks) in English.
+
+  Product: aws-sso-login is a single-binary Go CLI for AWS IAM Identity Center (AWS SSO)
+  users. Commands: console, export, import, process, version.
+
+  Platforms: macOS and Linux on amd64 and arm64 are supported and released.
+  Windows is best-effort and untested; do not promise Windows behavior in specs.
+  Binaries are built with CGO_ENABLED=0 and must stay statically linked.
+
+  Runtime dependency: the tool shells out to AWS CLI v2 (`aws sso login`,
+  `aws sts get-caller-identity`) and reads files the AWS CLI owns
+  (~/.aws/config, ~/.aws/credentials, ~/.aws/cli/cache). Changes must stay
+  compatible with the AWS CLI v2 file formats and cache-key algorithm, and must
+  honor AWS_CONFIG_FILE and AWS_SHARED_CREDENTIALS_FILE.
+
+  Output contracts (treat as public API, changing them is BREAKING):
+  - `export` stdout must be safe to `eval` in POSIX shells.
+  - `process` stdout must contain only the credential_process JSON (Version 1).
+  - Diagnostics and logs go to stderr. Every failure exits with status 1.
+  - Existing flag names and defaults are public API.
+
+  Security: never print or log secrets (access keys, secret keys, session tokens,
+  SSO access tokens). Files containing credentials must be written with 0600
+  permissions. Examples use placeholders such as 123456789012 and
+  https://example.awsapps.com/start.
+
+  Testing: tests must never read or write the real ~/.aws directory, never invoke
+  the real AWS CLI, and never call AWS endpoints. Use temp dirs, env overrides and
+  injected fakes. CI runs without AWS credentials.
+
+  Dependencies: keep the dependency set small. A new third-party module requires a
+  justification in design.md.
+
+rules:
+  proposal:
+    - "State the user-visible impact on each affected command (console, export, import, process)."
+    - "Mark any change to flags, defaults, stdout format or exit codes as **BREAKING**."
+    - "List what is explicitly out of scope."
+    - "Link the related GitHub issue when one exists."
+  specs:
+    - "Write scenarios for both the explicit --profile path and the interactive picker when profile selection is involved."
+    - "Cover failure scenarios: expired SSO token, role not assigned to the user, missing AWS CLI, missing or invalid profile."
+    - "Specify which output goes to stdout and which goes to stderr."
+    - "Cover both legacy SSO profiles (sso_start_url in the profile) and sso-session profiles when profile parsing is involved."
+  design:
+    - "Explain how the change interacts with AWS CLI config, credentials and cache formats."
+    - "Describe platform differences between macOS and Linux when the change touches processes, browsers, file paths or permissions."
+    - "Describe how external commands, the filesystem and HTTP are abstracted so the change can be unit-tested."
+  tasks:
+    - "Pair every behavior change with a unit test task."
+    - "Include a README.md and CHANGELOG.md (Unreleased section) update task for user-visible changes."
+    - "End with a verification task: make tests, go vet ./..., gofmt -l ./src returns nothing."
+
+operations:
+  apply:
+    guidance:
+      - "Do not run `aws sso login`, other AWS CLI commands or AWS API calls while implementing or testing."
+      - "Wrap errors with fmt.Errorf(\"...: %w\", err); either log an error or return it, not both."
+      - "Keep diffs minimal and do not reformat unrelated files."
+  archive:
+    guidance:
+      - "Confirm CHANGELOG.md and README.md reflect the archived behavior before archiving."
