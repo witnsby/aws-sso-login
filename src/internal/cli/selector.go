@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/charmbracelet/huh"
 	"github.com/witnsby/aws-sso-login/src/internal/profiles"
@@ -36,11 +37,13 @@ func (HuhSelector) Pick(p []profiles.Profile) (string, error) {
 	}
 
 	var choice string
-	err := huh.NewSelect[string]().
+	sel := huh.NewSelect[string]().
 		Title("Select an AWS SSO profile").
 		Options(opts...).
-		Value(&choice).
-		Run()
+		Value(&choice)
+	// Render on stderr so `eval "$(aws-sso-login export)"` never captures
+	// the picker UI.
+	err := huh.NewForm(huh.NewGroup(sel)).WithOutput(os.Stderr).Run()
 	if err != nil {
 		if errors.Is(err, huh.ErrUserAborted) {
 			return "", errors.New("profile selection cancelled")

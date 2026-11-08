@@ -43,7 +43,16 @@ func writeAwsConfig(t *testing.T, content string) string {
 		t.Fatalf("write fixture: %v", err)
 	}
 	t.Setenv("AWS_CONFIG_FILE", path)
+	t.Setenv("AWS_PROFILE", "")
 	return path
+}
+
+// setInteractive overrides terminal detection for the test.
+func setInteractive(t *testing.T, interactive bool) {
+	t.Helper()
+	orig := isInteractive
+	t.Cleanup(func() { isInteractive = orig })
+	isInteractive = func() bool { return interactive }
 }
 
 // TestResolveProfileName_FlagSet verifies that providing --profile bypasses
@@ -52,7 +61,7 @@ func TestResolveProfileName_FlagSet(t *testing.T) {
 	rec := &recordingSelector{inner: fakeSelector{choice: "should-not-be-used"}}
 	swapDefaultSelector(t, rec)
 
-	got, err := resolveProfileName("explicit-profile")
+	got, err := resolveProfileName("explicit-profile", true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -80,11 +89,12 @@ sso_account_id = 123456789012
 sso_role_name = ReadOnly
 `
 	writeAwsConfig(t, cfg)
+	setInteractive(t, true)
 
 	rec := &recordingSelector{inner: fakeSelector{choice: "dev-account"}}
 	swapDefaultSelector(t, rec)
 
-	got, err := resolveProfileName("")
+	got, err := resolveProfileName("", true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -114,11 +124,12 @@ aws_secret_access_key = secret
 credential_process = /bin/true
 `
 	writeAwsConfig(t, cfg)
+	setInteractive(t, true)
 
 	rec := &recordingSelector{inner: fakeSelector{choice: "should-not-be-used"}}
 	swapDefaultSelector(t, rec)
 
-	_, err := resolveProfileName("")
+	_, err := resolveProfileName("", true)
 	if err == nil {
 		t.Fatal("expected error when no SSO profiles are present, got nil")
 	}
@@ -140,11 +151,12 @@ sso_account_id = 123456789012
 sso_role_name = AdministratorAccess
 `
 	writeAwsConfig(t, cfg)
+	setInteractive(t, true)
 
 	sentinel := errors.New("user cancelled")
 	swapDefaultSelector(t, fakeSelector{err: sentinel})
 
-	_, err := resolveProfileName("")
+	_, err := resolveProfileName("", true)
 	if err == nil {
 		t.Fatal("expected error from selector, got nil")
 	}

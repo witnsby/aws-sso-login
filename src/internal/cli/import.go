@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -14,14 +15,20 @@ import (
 // It is a package-level seam so tests can swap in a deterministic fake.
 var defaultSelector Selector = HuhSelector{}
 
-// resolveProfileName returns the AWS profile name to import credentials for.
-//
-// If flagValue is non-empty, it is returned verbatim (the explicit --profile
-// flag bypasses the interactive selector). Otherwise, the AWS config file is
-// parsed for SSO-enabled profiles and the user is prompted via defaultSelector.
-func resolveProfileName(flagValue string) (string, error) {
+// resolveProfileName returns the AWS profile name a command works on, in
+// order of precedence: a non-empty --profile flag, a non-empty $AWS_PROFILE,
+// then the interactive picker. The picker is used only when allowPicker is
+// true and both stdin and stderr are terminals; otherwise a missing profile
+// is an error asking for --profile.
+func resolveProfileName(flagValue string, allowPicker bool) (string, error) {
 	if flagValue != "" {
 		return flagValue, nil
+	}
+	if env := os.Getenv("AWS_PROFILE"); env != "" {
+		return env, nil
+	}
+	if !allowPicker || !isInteractive() {
+		return "", errors.New(helper.ErrorPofileSpecification)
 	}
 
 	configPath, err := helper.AwsConfigPath()

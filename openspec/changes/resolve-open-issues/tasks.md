@@ -56,9 +56,9 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 9. Consistent `--profile` handling
 
-- [ ] 9.1 Move `--profile` to root persistent flags and resolve the name once in `PersistentPreRunE`: flag, then `AWS_PROFILE`, then the picker if `isInteractive()` and the command is not `process`, otherwise `must specify --profile`. Verify with table tests across all four commands for flag, env, interactive, non-interactive and cancelled cases.
-- [ ] 9.2 Render the picker on stderr (`huh.NewForm(...).WithOutput(os.Stderr)`) and promote `mattn/go-isatty` to a direct dependency. Verify that `go mod tidy` adds no new module and that `selector_test.go` still passes.
-- [ ] 9.3 Document `AWS_PROFILE`, the picker for `console` and `export`, and the recommendation to pass `--profile` in `credential_process` in README.md. Add a CHANGELOG `Added` entry. Commit `feat: persistent --profile with AWS_PROFILE fallback and picker for console and export` with `Closes #32`.
+- [x] 9.1 Move `--profile` to root persistent flags and resolve the name once in `PersistentPreRunE`: flag, then `AWS_PROFILE`, then the picker if `isInteractive()` and the command is not `process`, otherwise `must specify --profile`. Verify with table tests across all four commands for flag, env, interactive, non-interactive and cancelled cases.
+- [x] 9.2 Render the picker on stderr (`huh.NewForm(...).WithOutput(os.Stderr)`) and promote `mattn/go-isatty` to a direct dependency. Verify that `go mod tidy` adds no new module and that `selector_test.go` still passes.
+- [x] 9.3 Document `AWS_PROFILE`, the picker for `console` and `export`, and the recommendation to pass `--profile` in `credential_process` in README.md. Add a CHANGELOG `Added` entry. Commit `feat: persistent --profile with AWS_PROFILE fallback and picker for console and export` with `Closes #32`.
 
 ## 10. Logging
 

@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `--profile` is accepted by every command and defaults to `AWS_PROFILE`.
+  `console` and `export` now offer the interactive picker too, drawn on
+  stderr, when stdin and stderr are terminals; `process` never prompts.
+  (#32)
+
 ### Fixed
 
 - Profiles that reference an `[sso-session <name>]` section (the default

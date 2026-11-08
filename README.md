@@ -77,7 +77,13 @@ mv ./tmp/aws-sso-login /usr/local/bin/
 
 ## **Usage**
 
-All commands that take `--profile` expect the name of a profile from `~/.aws/config` (without the `profile ` prefix).
+All commands that take `--profile` expect the name of a profile from `~/.aws/config` (without the `profile ` prefix). The profile is chosen in this order:
+
+1. `--profile <name>`, accepted by every command.
+2. The `AWS_PROFILE` environment variable.
+3. An interactive picker (`console`, `export` and `import` only), shown when stdin and stderr are both terminals. The picker is drawn on stderr, so `eval "$(aws-sso-login export)"` stays safe.
+
+Otherwise the command fails with `must specify --profile`. `process` never prompts.
 
 ### **Console Command (`console`)**
 
@@ -85,11 +91,11 @@ Opens the AWS Management Console with SSO credentials in the default web browser
 
 #### Usage:
 ```bash
-aws-sso-login console --profile <profile-name> [flags]
+aws-sso-login console [--profile <profile-name>] [flags]
 ```
 
 #### Flags:
-- `--profile` (required): Name of the AWS SSO profile.
+- `--profile` (optional): Name of the AWS SSO profile. Defaults to `AWS_PROFILE`, then the picker.
 - `--force-logout` (optional, default `true`): Open the console logout page before logging in, so an existing console session does not block the new one. Pass `--force-logout=false` to skip it.
 - `--logout-wait` (optional, default `1`): Seconds to wait after the logout page before opening the sign-in page. Only used when `--force-logout` is on.
 
@@ -108,7 +114,7 @@ Prints credentials for the specified profile as shell `export` statements.
 
 #### Usage:
 ```bash
-aws-sso-login export --profile <profile-name>
+aws-sso-login export [--profile <profile-name>]
 ```
 
 #### Example:
@@ -133,14 +139,14 @@ export AWS_DEFAULT_REGION="<region>"
 
 ### **Import Command (`import`)**
 
-Fetches credentials for the specified profile and writes them to `~/.aws/credentials` under a section with the same name as the profile. Existing sections are updated in place.
+Fetches credentials for the specified profile and writes them to the shared credentials file (`~/.aws/credentials` or `AWS_SHARED_CREDENTIALS_FILE`) under a section with the same name as the profile. Existing sections are updated in place.
 
 #### Usage:
 ```bash
 aws-sso-login import [--profile <profile-name>]
 ```
 
-`--profile` is optional. When provided, the import runs non-interactively against that profile. When omitted, an interactive picker is presented (see below).
+`--profile` is optional. When provided (or when `AWS_PROFILE` is set), the import runs non-interactively against that profile. When both are omitted on a terminal, an interactive picker is presented (see below).
 
 #### Example (direct profile):
 ```bash
@@ -149,7 +155,7 @@ aws-sso-login import --profile dev-account
 
 #### Interactive selection
 
-When `--profile` is omitted on macOS or Linux, the tool reads `~/.aws/config`, filters to profiles that have `sso_start_url` set, sorts them alphabetically, and presents a picker:
+When neither `--profile` nor `AWS_PROFILE` is set on macOS or Linux, `console`, `export` and `import` read the AWS config file, keep the SSO profiles (legacy and sso-session, including `default`), sort them alphabetically, and present a picker on stderr:
 
 ```
 ? Select an AWS SSO profile:
@@ -160,8 +166,8 @@ When `--profile` is omitted on macOS or Linux, the tool reads `~/.aws/config`, f
 
 Use the arrow keys to move and `Enter` to confirm. The selected profile is then imported exactly as if `--profile <name>` had been passed.
 
-> **Note:** Only profiles with `sso_start_url` present in `~/.aws/config` are shown.
-> The interactive picker requires a TTY (macOS and Linux). Windows is untested.
+> **Note:** Profiles with missing or conflicting SSO settings are not shown.
+> The interactive picker requires stdin and stderr to be terminals (macOS and Linux). Windows is untested.
 
 ---
 
@@ -171,7 +177,7 @@ Prints `credential_process`-compatible JSON for the specified profile. It never 
 
 #### Usage:
 ```bash
-aws-sso-login process --profile <profile-name>
+aws-sso-login process [--profile <profile-name>]
 ```
 
 #### Example `~/.aws/config` usage:
@@ -179,6 +185,8 @@ aws-sso-login process --profile <profile-name>
 [profile dev-account-process]
 credential_process = aws-sso-login process --profile dev-account
 ```
+
+Always pass `--profile` in `credential_process`: the AWS SDK passes your shell's `AWS_PROFILE` to the process, which may name the `credential_process` profile itself rather than the SSO profile.
 
 #### Sample output (formatted for readability; the tool prints a single line):
 ```json
