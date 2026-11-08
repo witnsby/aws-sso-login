@@ -95,7 +95,7 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 15. Pull request
 
-- [ ] 15.1 Open a PR against `main` titled `fix: resolve open issues #22–#35`. In the description, link `openspec/changes/resolve-open-issues`, list `Closes #22` through `Closes #35` one per line, and note that it supersedes Dependabot PR #18. Verify on GitHub that all 14 issues show as linked to the PR.
+- [x] 15.1 Open a PR against `main` titled `fix: resolve open issues #22–#35`. In the description, link `openspec/changes/resolve-open-issues`, list `Closes #22` through `Closes #35` one per line, and note that it supersedes Dependabot PR #18. Verify on GitHub that all 14 issues show as linked to the PR.
 
 ## Workflow follow-up
 
