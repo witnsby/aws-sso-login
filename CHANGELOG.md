@@ -51,7 +51,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   stdout to stderr. (#31)
 - `console` opens the console in the profile's `region` when it is set,
   falling back to `sso_region`. (#35)
-- Go 1.27 is required to build from source; cobra, logrus, testify and
+- Go 1.27.3 (the first 1.27 release without known standard-library
+  vulnerabilities reachable from this tool) is required to build from source; cobra, logrus, testify and
   go-isatty are updated. (#34)
 - CI runs on pull requests and pushes to `main` with `go vet`, a `gofmt`
   check, tests with `-race` and `govulncheck`. Releases publish
