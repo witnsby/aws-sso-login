@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/witnsby/aws-sso-login/src/internal/helper"
 	"github.com/witnsby/aws-sso-login/src/internal/model"
+	"github.com/witnsby/aws-sso-login/src/internal/profiles"
 	"io"
 	"net/url"
 	"os"
@@ -32,7 +33,7 @@ type awsCredentialsManager struct {
 	credentialsPath string
 	credsFile       *ini.File
 	roleCred        *model.RoleCredential
-	profile         *ini.Section
+	profile         profiles.Profile
 	region          string
 	account         string
 	signinToken     string
@@ -45,7 +46,7 @@ type awsCredentialsManager struct {
 // as errSSORoleNoAccess) it returns immediately without invoking the login
 // flow, to avoid an infinite re-prompt loop.
 func (m *awsCredentialsManager) retrieveAndSetProfile() error {
-	profile, err := retrieveProfile(m.profileName)
+	profile, err := resolveProfile(m.profileName)
 	if err != nil {
 		logrus.Info(err)
 		return err
@@ -91,7 +92,7 @@ func (m *awsCredentialsManager) performSSOLogin() error {
 
 // getRoleCredentials either reads from the local AWS CLI cache or triggers
 // the AWS CLI to refresh the cache by calling `aws sts get-caller-identity`.
-func getRoleCredentials(profileName string, profile *ini.Section, silent bool) (*model.RoleCredential, error) {
+func getRoleCredentials(profileName string, profile profiles.Profile, silent bool) (*model.RoleCredential, error) {
 	// Try reading from the CLI cache
 	roleCred, err := getCachedRoleCredentials(profile)
 	if err == nil && roleCred != nil {
@@ -165,21 +166,17 @@ func isSSORoleNoAccessStderr(stderr string) bool {
 		strings.Contains(lower, "no access")
 }
 
-func buildCacheFilePath(profile *ini.Section) (string, error) {
+func buildCacheFilePath(profile profiles.Profile) (string, error) {
 	cachePath, err := helper.AwsCliCachePath()
 	if err != nil {
 		return "", err
 	}
 
 	// Build a cache key (sha1 of sorted JSON: {startUrl, roleName, accountId})
-	startURL := profile.Key("sso_start_url").String()
-	roleName := profile.Key("sso_role_name").String()
-	accountID := profile.Key("sso_account_id").String()
-
 	args := map[string]string{
-		"startUrl":  startURL,
-		"roleName":  roleName,
-		"accountId": accountID,
+		"startUrl":  profile.StartURL,
+		"roleName":  profile.RoleName,
+		"accountId": profile.AccountID,
 	}
 
 	b, _ := json.Marshal(args)
@@ -192,7 +189,7 @@ func buildCacheFilePath(profile *ini.Section) (string, error) {
 }
 
 // getCachedRoleCredentials looks up ~/.aws/cli/cache/<sha1>.json
-func getCachedRoleCredentials(profile *ini.Section) (*model.RoleCredential, error) {
+func getCachedRoleCredentials(profile profiles.Profile) (*model.RoleCredential, error) {
 	fullPath, err := buildCacheFilePath(profile)
 	if err != nil {
 		logrus.Error(err)
@@ -286,42 +283,12 @@ func getURL(raw string) ([]byte, error) {
 	return body, nil
 }
 
-// retrieveProfile retrieves and validates an AWS profile from the configuration file.
-// It ensures the specified profile contains all required attributes for AWS SSO workflows.
-func retrieveProfile(profileName string) (*ini.Section, error) {
-	// Get the path to the AWS configuration file.
+// resolveProfile loads the named profile from the AWS config file and
+// validates its SSO configuration (legacy or sso-session).
+func resolveProfile(profileName string) (profiles.Profile, error) {
 	configPath, err := helper.AwsConfigPath()
 	if err != nil {
-		return nil, err
+		return profiles.Profile{}, err
 	}
-
-	// Load the AWS configuration file.
-	configFile, err := ini.Load(configPath)
-	if err != nil {
-		logrus.Errorf("Failed to load AWS config file at %s: %v", configPath, err)
-		return nil, err
-	}
-
-	// Build the profile section name based on the input.
-	sectionName := fmt.Sprintf("profile %s", profileName)
-
-	// Attempt to retrieve the profile section from the config file.
-	section, err := configFile.GetSection(sectionName)
-	if err != nil {
-		logrus.Errorf("Profile [%s] not found in config file: %s", sectionName, configPath)
-		return nil, fmt.Errorf("cannot find profile [%s] in %s", sectionName, configPath)
-	}
-
-	// List of required keys for the profile section.
-	requiredKeys := []string{"sso_start_url", "sso_account_id", "sso_role_name", "sso_region"}
-
-	// Validate if all required keys are present in the profile section.
-	for _, key := range requiredKeys {
-		if val := section.Key(key).String(); val == "" {
-			return nil, fmt.Errorf("missing required attribute %q in profile %s", key, profileName)
-		}
-	}
-
-	// Return the valid profile section.
-	return section, nil
+	return profiles.Resolve(configPath, profileName)
 }

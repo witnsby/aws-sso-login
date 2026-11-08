@@ -1,17 +1,102 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/witnsby/aws-sso-login/src/internal/model"
+	"github.com/witnsby/aws-sso-login/src/internal/profiles"
 )
+
+// Fake credential values used across tests. They are placeholders, not real
+// AWS credentials.
+const (
+	fakeAccessKey    = "ASIAFAKEACCESSKEY000"
+	fakeSecretKey    = "fakeSecretKeyValue0000000000000000000000"
+	fakeSessionToken = "fakeSessionTokenValue000000000000"
+)
+
+// awsEnv describes the temporary AWS environment created by setupAWSEnv.
+type awsEnv struct {
+	Home            string
+	ConfigPath      string
+	CredentialsPath string
+}
+
+// setupAWSEnv points HOME, AWS_CONFIG_FILE and AWS_SHARED_CREDENTIALS_FILE
+// at a temp dir, clears AWS_PROFILE and writes config as the AWS config file.
+// Tests using it must not run in parallel.
+func setupAWSEnv(t *testing.T, config string) awsEnv {
+	t.Helper()
+	home := t.TempDir()
+	env := awsEnv{
+		Home:            home,
+		ConfigPath:      filepath.Join(home, ".aws", "config"),
+		CredentialsPath: filepath.Join(home, ".aws", "credentials"),
+	}
+	require.NoError(t, os.MkdirAll(filepath.Dir(env.ConfigPath), 0o700))
+	require.NoError(t, os.WriteFile(env.ConfigPath, []byte(config), 0o600))
+	t.Setenv("HOME", home)
+	t.Setenv("AWS_CONFIG_FILE", env.ConfigPath)
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", env.CredentialsPath)
+	t.Setenv("AWS_PROFILE", "")
+	t.Setenv("AWS_SSO_LOGIN_DEBUG", "")
+	return env
+}
+
+// writeCachedCreds writes an AWS CLI cache file for profile with the given
+// expiration, using the same cache key the production code computes.
+func writeCachedCreds(t *testing.T, profile profiles.Profile, expiration time.Time) {
+	t.Helper()
+	path, err := buildCacheFilePath(profile)
+	require.NoError(t, err)
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
+	payload := map[string]any{
+		"ProviderType": "sso",
+		"Credentials": model.RoleCredential{
+			AccessKeyId:     fakeAccessKey,
+			SecretAccessKey: fakeSecretKey,
+			SessionToken:    fakeSessionToken,
+			Expiration:      expiration.UTC().Format(time.RFC3339),
+		},
+	}
+	b, err := json.Marshal(payload)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, b, 0o600))
+}
+
+// mustResolve resolves a profile from the current AWS_CONFIG_FILE.
+func mustResolve(t *testing.T, name string) profiles.Profile {
+	t.Helper()
+	p, err := resolveProfile(name)
+	require.NoError(t, err)
+	return p
+}
+
+// legacyConfig is a config with an SSO-enabled [default] and a legacy profile.
+const legacyConfig = `[default]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+sso_account_id = 123456789012
+sso_role_name = DefaultRole
+
+[profile dev]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+sso_account_id = 123456789012
+sso_role_name = Admin
+region = eu-west-1
+`
 
 // fakeResult scripts the outcome of one faked external command.
 type fakeResult struct {

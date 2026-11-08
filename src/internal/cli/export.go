@@ -24,12 +24,12 @@ import (
 // Returns:
 // - An error if profile retrieval or credential generation fails.
 func exportCredsToOutput(profileName string) error {
-	profile, err := retrieveProfile(profileName)
+	profile, err := resolveProfile(profileName)
 	if err != nil {
 		return err
 	}
 
-	awsRegion := profile.Key("region").String()
+	awsRegion := profile.Region
 	roleCred, err := getRoleCredentials(profileName, profile, true)
 	if err != nil {
 		return err

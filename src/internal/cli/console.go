@@ -23,8 +23,8 @@ func console(profile string, forceLogout bool, logoutWait int) error {
 	}
 	manager.signinToken = signinToken
 
-	manager.region = manager.profile.Key("sso_region").String()
-	manager.account = manager.profile.Key("sso_account_id").String()
+	manager.region = manager.profile.SSORegion
+	manager.account = manager.profile.AccountID
 	if err = manager.validateProfileParams(); err != nil {
 		logrus.Error(err)
 		return err

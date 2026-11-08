@@ -11,11 +11,11 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 2. Single profile resolution with default and sso-session support
 
-- [ ] 2.1 Add `profiles.Resolve(configPath, name)` returning a validated `Profile` (Name, AccountID, RoleName, StartURL, SSORegion, Region, SessionName). It handles `default` → `[default]` then `[profile default]`, `[profile <name>]`, legacy required keys, and `[sso-session <name>]` lookup with missing-section, missing-key and conflict errors. Verify with table tests for every scenario in specs/profile-resolution "Profile section lookup", "Legacy SSO profiles" and "sso-session profiles".
-- [ ] 2.2 Reimplement `ListSSOProfiles` on the same helpers so it includes sso-session profiles and `default`, skips invalid and non-SSO sections, and sorts case-insensitively. Verify with a test using a mixed config (legacy, sso-session, non-SSO, default).
-- [ ] 2.3 Replace `retrieveProfile` and all `*ini.Section` usage in `cli` with `profiles.Resolve` and `profiles.Profile`. Verify that `import --profile default` works in a test with a temp `AWS_CONFIG_FILE` and a fake runner.
-- [ ] 2.4 Document sso-session support and the `default` profile in README.md and add `Fixed` entries to CHANGELOG.md `Unreleased`. Verify the README example config matches the test fixture.
-- [ ] 2.5 Commit `fix: resolve default and sso-session profiles in one place` with `Closes #22` and `Refs #23`.
+- [x] 2.1 Add `profiles.Resolve(configPath, name)` returning a validated `Profile` (Name, AccountID, RoleName, StartURL, SSORegion, Region, SessionName). It handles `default` → `[default]` then `[profile default]`, `[profile <name>]`, legacy required keys, and `[sso-session <name>]` lookup with missing-section, missing-key and conflict errors. Verify with table tests for every scenario in specs/profile-resolution "Profile section lookup", "Legacy SSO profiles" and "sso-session profiles".
+- [x] 2.2 Reimplement `ListSSOProfiles` on the same helpers so it includes sso-session profiles and `default`, skips invalid and non-SSO sections, and sorts case-insensitively. Verify with a test using a mixed config (legacy, sso-session, non-SSO, default).
+- [x] 2.3 Replace `retrieveProfile` and all `*ini.Section` usage in `cli` with `profiles.Resolve` and `profiles.Profile`. Verify that `import --profile default` works in a test with a temp `AWS_CONFIG_FILE` and a fake runner.
+- [x] 2.4 Document sso-session support and the `default` profile in README.md and add `Fixed` entries to CHANGELOG.md `Unreleased`. Verify the README example config matches the test fixture.
+- [x] 2.5 Commit `fix: resolve default and sso-session profiles in one place` with `Closes #22` and `Refs #23`.
 
 ## 3. Cache key for sso-session profiles
 

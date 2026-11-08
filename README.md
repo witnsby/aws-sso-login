@@ -205,18 +205,24 @@ aws-sso-login version
 
 ## **Configuration**
 
-`aws-sso-login` reads profiles from the AWS CLI config file: `~/.aws/config`, or the path in `AWS_CONFIG_FILE`. Each profile must set:
+`aws-sso-login` reads profiles from the AWS CLI config file: `~/.aws/config`, or the path in `AWS_CONFIG_FILE`. Both profile formats written by AWS CLI v2 are supported. The `default` profile is read from `[default]` (or `[profile default]`); every other profile is read from `[profile <name>]`.
 
-1. `sso_start_url`: The AWS access portal URL for your organization.
-2. `sso_region`: The AWS region of IAM Identity Center.
-3. `sso_account_id`: The AWS account ID.
-4. `sso_role_name`: The permission set (role) name.
+**sso-session profiles** (the default format of `aws configure sso`): the profile sets `sso_session`, `sso_account_id` and `sso_role_name`, and the referenced `[sso-session <name>]` section sets `sso_start_url` and `sso_region`.
 
-Optional:
+```ini
+[profile dev-account]
+sso_session = my-sso
+sso_account_id = 123456789012
+sso_role_name = DeveloperAccess
+region = eu-west-1
 
-- `region`: Default region, exported as `AWS_DEFAULT_REGION` by `export`.
+[sso-session my-sso]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+```
 
-Example:
+**Legacy profiles**: the profile itself sets `sso_start_url`, `sso_region`, `sso_account_id` and `sso_role_name`.
+
 ```ini
 [profile dev-account]
 sso_start_url = https://example.awsapps.com/start
@@ -226,8 +232,11 @@ sso_role_name = DeveloperAccess
 region = eu-west-1
 ```
 
+Optional in both formats:
+
+- `region`: Default region, exported as `AWS_DEFAULT_REGION` by `export`.
+
 > **Limitations:**
-> - Profiles that reference an `[sso-session ...]` section (the default format written by recent `aws configure sso`) are not supported yet. Put `sso_start_url` and `sso_region` directly in the profile.
 > - `import` always writes to `~/.aws/credentials`; `AWS_SHARED_CREDENTIALS_FILE` is not honored yet.
 
 ---

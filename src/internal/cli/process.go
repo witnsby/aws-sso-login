@@ -12,7 +12,7 @@ func processCreds(profileName string) error {
 	logrus.Infof("Processing credentials for profile: %s", profileName)
 
 	// Retrieve the profile
-	profile, err := retrieveProfile(profileName)
+	profile, err := resolveProfile(profileName)
 	if err != nil {
 		logrus.WithError(err).Errorf("Failed to retrieve profile for %s", profileName)
 		return fmt.Errorf("failed to retrieve profile: %w", err)
