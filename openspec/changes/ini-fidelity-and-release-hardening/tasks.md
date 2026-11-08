@@ -11,10 +11,10 @@
 
 ## 2. Keep credentials file formatting on import (#40)
 
-- [ ] 2.1 Add an `init()` to `src/internal/awsini` that sets `ini.PrettyFormat = false` and `ini.PrettyEqual = true`, with a comment that this is the only place go-ini's write style is set; verify with an `awsini` test that writing a section produces `key = value` lines without padding
-- [ ] 2.2 Add a `credsfile_test.go` case: `[other]` with `aws_access_key_id = AKIDEXAMPLE` and `region = eu-west-1` is written back with exactly those lines after `import --profile dev`, and every key in `[dev]` is written as `key = value`; verify the test fails on the old formatting and passes now
-- [ ] 2.3 Add a `CHANGELOG.md` Unreleased `### Fixed` entry: `import` no longer re-aligns keys in profiles it does not update (#40); verify the entry is present
-- [ ] 2.4 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate ini-fidelity-and-release-hardening --strict`, tick 2.1–2.4, then commit `fix: keep credentials file formatting when importing` with `Closes #40`
+- [x] 2.1 Add an `init()` to `src/internal/awsini` that sets `ini.PrettyFormat = false` and `ini.PrettyEqual = true`, with a comment that this is the only place go-ini's write style is set; verify with an `awsini` test that writing a section produces `key = value` lines without padding
+- [x] 2.2 Add a `credsfile_test.go` case: `[other]` with `aws_access_key_id = AKIDEXAMPLE` and `region = eu-west-1` is written back with exactly those lines after `import --profile dev`, and every key in `[dev]` is written as `key = value`; verify the test fails on the old formatting and passes now
+- [x] 2.3 Add a `CHANGELOG.md` Unreleased `### Fixed` entry: `import` no longer re-aligns keys in profiles it does not update (#40); verify the entry is present
+- [x] 2.4 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate ini-fidelity-and-release-hardening --strict`, tick 2.1–2.4, then commit `fix: keep credentials file formatting when importing` with `Closes #40`
 
 ## 3. Narrow role-not-assigned detection (#44)
 

@@ -1,6 +1,7 @@
 package awsini
 
 import (
+	"bytes"
 	"errors"
 	"io/fs"
 	"os"
@@ -42,4 +43,15 @@ func TestLoadMissingFile(t *testing.T) {
 	_, err := Load(filepath.Join(t.TempDir(), "missing"))
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, fs.ErrNotExist))
+}
+
+func TestWriteDoesNotAlignKeys(t *testing.T) {
+	path := writeFile(t, "[other]\naws_access_key_id = AKIDEXAMPLE\nregion = eu-west-1\n")
+	f, err := Load(path)
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	_, err = f.WriteTo(&buf)
+	require.NoError(t, err)
+	assert.Equal(t, "[other]\naws_access_key_id = AKIDEXAMPLE\nregion = eu-west-1\n", buf.String())
 }

@@ -174,7 +174,27 @@ func TestUpdateCredentialsFile_KeepsSpecialCharacters(t *testing.T) {
 	assert.Equal(t, "abc#def;ghi", s.Key("aws_secret_access_key").String())
 	assert.Equal(t, `sh -c "a; b"`, s.Key("credential_process").String())
 	assert.Equal(t, `"/opt/my tool/bin" --profile x`, s.Key("quoted_process").String())
+	assert.True(t, strings.HasPrefix(content, other), "untouched section must be written back unchanged, got:\n%s", content)
 	assert.NotContains(t, content, "\n#")
 	assert.NotContains(t, content, "\n;")
 	assert.Equal(t, 1, strings.Count(content, "[dev]"))
+}
+
+// TestUpdateCredentialsFile_KeepsFormatting checks that import does not
+// re-align keys in sections it does not update (issue #40).
+func TestUpdateCredentialsFile_KeepsFormatting(t *testing.T) {
+	other := "[other]\naws_access_key_id = AKIDEXAMPLE\nregion = eu-west-1\n"
+	path := filepath.Join(t.TempDir(), "credentials")
+	require.NoError(t, os.WriteFile(path, []byte(other), 0o600))
+
+	cred := &model.RoleCredential{AccessKeyId: "AK", SecretAccessKey: "SK", SessionToken: "ST"}
+	require.NoError(t, updateCredentialsFile(path, "dev", cred))
+
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, other+"\n[dev]\n"+
+		"aws_access_key_id = AK\n"+
+		"aws_secret_access_key = SK\n"+
+		"aws_session_token = ST\n"+
+		"aws_security_token = ST\n", string(data))
 }

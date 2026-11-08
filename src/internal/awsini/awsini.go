@@ -5,6 +5,15 @@ package awsini
 
 import "github.com/go-ini/ini"
 
+// init sets go-ini's process-wide write style. This is the only place in the
+// module that sets it: keys are written as "key = value" without padding
+// them into aligned columns, so rewriting the credentials file does not
+// re-format sections it did not change.
+func init() {
+	ini.PrettyFormat = false
+	ini.PrettyEqual = true
+}
+
 // LoadOptions returns the options for loading AWS config and credentials
 // files. botocore reads them with configparser.RawConfigParser, which keeps
 // inline '#' and ';' and surrounding double quotes as part of a value; only

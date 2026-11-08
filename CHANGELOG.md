@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   quotes are kept. `import` no longer truncates or unquotes values of other
   profiles in the credentials file, and legacy profiles whose
   `sso_start_url` ends in `/#` find their cached credentials again. (#39)
+- `import` no longer re-aligns the keys of profiles it does not update; the
+  credentials file is written with plain `key = value` lines. (#40)
 
 ## [v0.2.0] - 2026-11-09
 
