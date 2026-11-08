@@ -31,8 +31,8 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 5. Missing AWS CLI
 
-- [ ] 5.1 Add `errAWSCLINotFound` and `requireAWSCLI()` using `lookPath("aws")`, and map `exec.ErrNotFound` from the runner to the same error. Skip the login retry for it. Verify with tests: `lookPath` fails → error text matches the spec and the runner is never called with `sso login`.
-- [ ] 5.2 Add a CHANGELOG `Fixed` entry. Commit `fix: report a missing AWS CLI clearly` with `Closes #29`.
+- [x] 5.1 Add `errAWSCLINotFound` and `requireAWSCLI()` using `lookPath("aws")`, and map `exec.ErrNotFound` from the runner to the same error. Skip the login retry for it. Verify with tests: `lookPath` fails → error text matches the spec and the runner is never called with `sso login`.
+- [x] 5.2 Add a CHANGELOG `Fixed` entry. Commit `fix: report a missing AWS CLI clearly` with `Closes #29`.
 
 ## 6. Visible `aws sso login` output
 

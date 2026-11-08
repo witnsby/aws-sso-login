@@ -134,10 +134,27 @@ type fakeRunner struct {
 func installFakeRunner(t *testing.T, handler func(name string, args []string) fakeResult) *fakeRunner {
 	t.Helper()
 	f := &fakeRunner{handler: handler}
-	orig := execCommand
-	t.Cleanup(func() { execCommand = orig })
+	origExec, origLook := execCommand, lookPath
+	t.Cleanup(func() { execCommand, lookPath = origExec, origLook })
 	execCommand = f.command
+	// Every executable is "installed" unless a test says otherwise.
+	lookPath = func(name string) (string, error) { return "/fake/bin/" + name, nil }
 	return f
+}
+
+// missingExecutables makes lookPath fail for the given names.
+func missingExecutables(t *testing.T, names ...string) {
+	t.Helper()
+	orig := lookPath
+	t.Cleanup(func() { lookPath = orig })
+	lookPath = func(name string) (string, error) {
+		for _, n := range names {
+			if n == name {
+				return "", &exec.Error{Name: name, Err: exec.ErrNotFound}
+			}
+		}
+		return orig(name)
+	}
 }
 
 func (f *fakeRunner) command(name string, args ...string) *exec.Cmd {

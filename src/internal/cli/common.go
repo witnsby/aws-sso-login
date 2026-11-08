@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -25,6 +26,28 @@ import (
 // ForbiddenException / AccessDeniedException). Re-running `aws sso login`
 // cannot resolve this; the user must obtain access from an administrator.
 var errSSORoleNoAccess = errors.New("no access to the configured SSO role")
+
+// errAWSCLINotFound indicates that the aws executable is not in PATH. Running
+// `aws sso login` cannot help, so the login retry is skipped.
+var errAWSCLINotFound = errors.New(`AWS CLI v2 is required but "aws" was not found in PATH`)
+
+// awsCommand builds an AWS CLI command, or returns errAWSCLINotFound when
+// the aws executable is not in PATH.
+func awsCommand(args ...string) (*exec.Cmd, error) {
+	if _, err := lookPath("aws"); err != nil {
+		return nil, errAWSCLINotFound
+	}
+	return execCommand("aws", args...), nil
+}
+
+// mapAWSExecError turns a "not found" error from running the AWS CLI into
+// errAWSCLINotFound and returns any other error unchanged.
+func mapAWSExecError(err error) error {
+	if errors.Is(err, exec.ErrNotFound) {
+		return errAWSCLINotFound
+	}
+	return err
+}
 
 // importCreds retrieves AWS credentials for the specified profile,
 // writes them to the AWS credentials file under that profile section,
@@ -60,7 +83,7 @@ func (m *awsCredentialsManager) retrieveAndSetProfile() error {
 		return nil
 	}
 
-	if errors.Is(err, errSSORoleNoAccess) {
+	if errors.Is(err, errSSORoleNoAccess) || errors.Is(err, errAWSCLINotFound) {
 		return err
 	}
 
@@ -79,12 +102,17 @@ func (m *awsCredentialsManager) retrieveAndSetProfile() error {
 
 // performSSOLogin runs the AWS CLI SSO login command for the specified profile and returns an error if the command fails.
 func (m *awsCredentialsManager) performSSOLogin() error {
-	cmd := execCommand("aws", "sso", "login", "--profile", m.profileName)
+	cmd, err := awsCommand("sso", "login", "--profile", m.profileName)
+	if err != nil {
+		return err
+	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
+		if mapped := mapAWSExecError(err); errors.Is(mapped, errAWSCLINotFound) {
+			return mapped
+		}
 		return fmt.Errorf("failed to execute aws sso login: %v - %s", err, stderr.String())
 	}
 
@@ -132,13 +160,19 @@ func getRoleCredentials(profileName string, profile profiles.Profile, silent boo
 // returned error wraps errSSORoleNoAccess so callers can distinguish it from
 // transient/expired-token failures.
 func updateCachedRoleCredentials(profileName string, silent bool) error {
-	cmd := execCommand("aws", "sts", "get-caller-identity",
+	cmd, err := awsCommand("sts", "get-caller-identity",
 		"--query", "Arn", "--output", "text", "--profile", profileName)
+	if err != nil {
+		return err
+	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
 	output, err := cmd.Output()
 	if err != nil {
+		if mapped := mapAWSExecError(err); errors.Is(mapped, errAWSCLINotFound) {
+			return mapped
+		}
 		stderrStr := strings.TrimSpace(stderr.String())
 		if stderrStr != "" {
 			logrus.Debug(stderrStr)
