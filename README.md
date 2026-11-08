@@ -270,17 +270,21 @@ The project uses [Logrus](https://github.com/sirupsen/logrus).
 
 ## **Development**
 
-| Task                | Command              |
-| ------------------- | -------------------- |
-| Install deps        | `make install-deps`  |
-| Run tests           | `make tests`         |
-| Coverage report     | `make cover`         |
-| Build (host)        | `make build`         |
-| Build all platforms | `make build-all`     |
-| Vet                 | `make vet`           |
-| Format check        | `make fmt-check`     |
-| Checksums           | `make checksums`     |
-| Clean               | `make clean`         |
+| Task                | Command                  |
+| ------------------- | ------------------------ |
+| Install deps        | `make install-deps`      |
+| Run tests           | `make tests`             |
+| Coverage report     | `make cover`             |
+| Build (host)        | `make build`             |
+| Build all platforms | `make build-all`         |
+| Vet                 | `make vet`               |
+| Format check        | `make fmt-check`         |
+| Toolchain check     | `make check-toolchain`   |
+| Action pin check    | `make check-action-pins` |
+| Checksums           | `make checksums`         |
+| Clean               | `make clean`             |
+
+GitHub Actions in `.github/workflows/` are referenced by full commit SHA with the version in a comment (`uses: owner/repo@<sha> # vX.Y.Z`); CI runs `make check-action-pins` and fails on tag or branch references. Dependabot keeps the pins up to date.
 
 Binaries are written to `./tmp/`. Each release also ships `aws-sso-login_checksums.txt`; verify a download with `sha256sum -c aws-sso-login_checksums.txt --ignore-missing` (or `shasum -a 256 -c` on macOS). See [AGENTS.md](AGENTS.md) for repository layout and coding conventions. Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec); project rules are in [`openspec/config.yaml`](openspec/config.yaml).
 

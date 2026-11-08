@@ -48,6 +48,17 @@ check-toolchain:
 	if [ "$$got" != "$$want" ]; then echo "Go toolchain is $$got, go.mod pins $$want"; exit 1; fi; \
 	echo "Go toolchain $$got matches go.mod"
 
+# Fail when a workflow references an action by tag or branch instead of a
+# full commit SHA. Local actions (uses: ./path) are ignored.
+WORKFLOWS ?= .github/workflows
+.PHONY: check-action-pins
+check-action-pins:
+	@bad="$$(grep -HnE '^[[:space:]]*(-[[:space:]]*)?uses:' $(WORKFLOWS)/*.y*ml \
+		| grep -vE 'uses:[[:space:]]*\./' \
+		| grep -vE 'uses:[[:space:]]*[^[:space:]@]+@[0-9a-f]{40}([[:space:]]|$$)' || true)"; \
+	if [ -n "$$bad" ]; then echo "Actions must be pinned to a full commit SHA:"; echo "$$bad"; exit 1; fi; \
+	echo "All actions are pinned to commit SHAs"
+
 # Build single binary
 .PHONY: build
 build:
@@ -87,6 +98,7 @@ help:
 	@echo "  vet             Run go vet"
 	@echo "  fmt-check       Fail if any Go file needs gofmt"
 	@echo "  check-toolchain Fail unless the Go toolchain matches go.mod"
+	@echo "  check-action-pins Fail if a workflow action is not pinned to a commit SHA"
 	@echo "  build           Build the application (single platform)"
 	@echo "  build-all       Build the application for multiple platforms"
 	@echo "  checksums       Write SHA-256 checksums for the built binaries"

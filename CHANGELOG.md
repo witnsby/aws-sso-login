@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `go.mod` declares `go 1.27` as the minimum and pins `toolchain go1.27.3`
   for CI and release builds; CI fails when the active toolchain differs.
   (#45)
+- GitHub Actions in the CI and release workflows are pinned to full commit
+  SHAs, and CI fails on tag or branch references (`make check-action-pins`).
+  (#42)
 
 ## [v0.2.0] - 2026-11-09
 

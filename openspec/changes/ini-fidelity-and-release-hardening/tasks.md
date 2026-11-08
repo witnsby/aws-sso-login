@@ -32,10 +32,10 @@
 
 ## 5. Pin GitHub Actions to commit SHAs (#42)
 
-- [ ] 5.1 Replace every `uses:` in `.github/workflows/*` with `owner/repo@<40-hex-sha> # vX.Y.Z`, resolving each SHA from its release tag with `gh api` (dereference annotated tags); verify each SHA with `gh api repos/<owner>/<repo>/commits/<sha>`
-- [ ] 5.2 Add a `check-action-pins` Makefile target (listed in `make help`) that fails and prints the offending line for any `uses:` ref that is not 40 hex characters, ignoring local `./` actions, and run it as a step in `build_release.yaml`; verify it fails on a temp workflow containing `uses: actions/checkout@v4` and passes on the repository
-- [ ] 5.3 Add a `CHANGELOG.md` Unreleased `### Changed` entry about SHA-pinned actions (#42) and mention `make check-action-pins` in the README development section; verify both are present
-- [ ] 5.4 Run `make check-action-pins`, `make tests` and `openspec validate ini-fidelity-and-release-hardening --strict`, tick 5.1–5.4, then commit `ci: pin GitHub Actions to commit SHAs` with `Closes #42`
+- [x] 5.1 Replace every `uses:` in `.github/workflows/*` with `owner/repo@<40-hex-sha> # vX.Y.Z`, resolving each SHA from its release tag with `gh api` (dereference annotated tags); verify each SHA with `gh api repos/<owner>/<repo>/commits/<sha>`
+- [x] 5.2 Add a `check-action-pins` Makefile target (listed in `make help`) that fails and prints the offending line for any `uses:` ref that is not 40 hex characters, ignoring local `./` actions, and run it as a step in `build_release.yaml`; verify it fails on a temp workflow containing `uses: actions/checkout@v4` and passes on the repository
+- [x] 5.3 Add a `CHANGELOG.md` Unreleased `### Changed` entry about SHA-pinned actions (#42) and mention `make check-action-pins` in the README development section; verify both are present
+- [x] 5.4 Run `make check-action-pins`, `make tests` and `openspec validate ini-fidelity-and-release-hardening --strict`, tick 5.1–5.4, then commit `ci: pin GitHub Actions to commit SHAs` with `Closes #42`
 
 ## 6. Release notes from CHANGELOG.md (#43)
 
