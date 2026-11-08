@@ -20,6 +20,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   access" now lead to `aws sso login` (`console`, `import`) or to the
   `aws sso login` advice (`export`, `process`). (#44)
 
+### Changed
+
+- `go.mod` declares `go 1.27` as the minimum and pins `toolchain go1.27.3`
+  for CI and release builds; CI fails when the active toolchain differs.
+  (#45)
+
 ## [v0.2.0] - 2026-11-09
 
 ### Added

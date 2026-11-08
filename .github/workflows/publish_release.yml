@@ -25,6 +25,9 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Check Go toolchain matches go.mod
+        run: make check-toolchain
+
       - name: Run tests
         run: make tests
 

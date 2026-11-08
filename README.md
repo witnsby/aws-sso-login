@@ -45,7 +45,7 @@ A Go command-line tool that simplifies AWS IAM Identity Center (AWS SSO) authent
 - **AWS CLI v2** installed and available in `PATH`. `aws-sso-login` calls `aws sso login` and `aws sts get-caller-identity` and reads the credentials the AWS CLI caches in `~/.aws/cli/cache`.
 - At least one SSO profile configured in `~/.aws/config` (see [Configuration](#configuration)).
 - Your SSO user must be assigned to the account and permission set (role) used by the profile.
-- **Go 1.27.3 or newer** (the version in `go.mod`) only if you build from source.
+- **Go 1.27 or newer** (the `go` line in `go.mod`) only if you build from source. CI and releases use the toolchain pinned by the `toolchain` line; with the default `GOTOOLCHAIN=auto` Go downloads it for you.
 
 Supported platforms: macOS and Linux on amd64 and arm64. Windows is untested.
 

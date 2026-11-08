@@ -39,6 +39,15 @@ fmt-check:
 	@out="$$(gofmt -l ./src)"; \
 	if [ -n "$$out" ]; then echo "Files need gofmt:"; echo "$$out"; exit 1; fi
 
+# Fail unless the active Go toolchain is the one pinned in go.mod
+.PHONY: check-toolchain
+check-toolchain:
+	@want="$$(awk '$$1 == "toolchain" {print $$2}' go.mod)"; \
+	got="$$(go env GOVERSION)"; \
+	if [ -z "$$want" ]; then echo "go.mod has no toolchain directive"; exit 1; fi; \
+	if [ "$$got" != "$$want" ]; then echo "Go toolchain is $$got, go.mod pins $$want"; exit 1; fi; \
+	echo "Go toolchain $$got matches go.mod"
+
 # Build single binary
 .PHONY: build
 build:
@@ -77,6 +86,7 @@ help:
 	@echo "  cover           Run coverage"
 	@echo "  vet             Run go vet"
 	@echo "  fmt-check       Fail if any Go file needs gofmt"
+	@echo "  check-toolchain Fail unless the Go toolchain matches go.mod"
 	@echo "  build           Build the application (single platform)"
 	@echo "  build-all       Build the application for multiple platforms"
 	@echo "  checksums       Write SHA-256 checksums for the built binaries"

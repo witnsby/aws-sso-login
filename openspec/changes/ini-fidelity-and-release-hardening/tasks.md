@@ -25,10 +25,10 @@
 
 ## 4. Minimum Go version with a pinned toolchain (#45)
 
-- [ ] 4.1 Change `go.mod` to `go 1.27` plus `toolchain go1.27.3`; verify `go mod tidy` leaves `go.mod`/`go.sum` unchanged and `GOTOOLCHAIN=local go build ./...` succeeds with the local 1.27.x toolchain
-- [ ] 4.2 Add a step to `build_release.yaml` and `publish_release.yml` after setup-go that fails unless `go env GOVERSION` equals the `toolchain` value from `go mod edit -json go.mod`; if setup-go installs a different version, switch `go-version-file` to a `go-version` read from the `toolchain` line; verify the step passes on the PR's CI run
-- [ ] 4.3 Update `README.md` ("Go 1.27 or newer" for building from source) and add a `CHANGELOG.md` Unreleased `### Changed` entry (#45); verify no remaining mention of "1.27.3 or newer" with `grep -n "1.27.3" README.md`
-- [ ] 4.4 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate ini-fidelity-and-release-hardening --strict`, tick 4.1–4.4, then commit `build: require go 1.27 and pin toolchain go1.27.3` with `Closes #45`
+- [x] 4.1 Change `go.mod` to `go 1.27` plus `toolchain go1.27.3`; verify `go mod tidy` leaves `go.mod`/`go.sum` unchanged and `GOTOOLCHAIN=local go build ./...` succeeds with the local 1.27.x toolchain
+- [x] 4.2 Add a step to `build_release.yaml` and `publish_release.yml` after setup-go that fails unless `go env GOVERSION` equals the `toolchain` value from `go mod edit -json go.mod`; if setup-go installs a different version, switch `go-version-file` to a `go-version` read from the `toolchain` line; verify the step passes on the PR's CI run
+- [x] 4.3 Update `README.md` ("Go 1.27 or newer" for building from source) and add a `CHANGELOG.md` Unreleased `### Changed` entry (#45); verify no remaining mention of "1.27.3 or newer" with `grep -n "1.27.3" README.md`
+- [x] 4.4 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate ini-fidelity-and-release-hardening --strict`, tick 4.1–4.4, then commit `build: require go 1.27 and pin toolchain go1.27.3` with `Closes #45`
 
 ## 5. Pin GitHub Actions to commit SHAs (#42)
 

@@ -24,6 +24,9 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Check Go toolchain matches go.mod
+        run: make check-toolchain
+
       - name: Verify go.mod and go.sum are tidy
         run: |
           go mod tidy
