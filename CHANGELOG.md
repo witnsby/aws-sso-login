@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Values in `~/.aws/config` and `~/.aws/credentials` are now read the way the
+  AWS CLI reads them: `#` and `;` inside a value and surrounding double
+  quotes are kept. `import` no longer truncates or unquotes values of other
+  profiles in the credentials file, and legacy profiles whose
+  `sso_start_url` ends in `/#` find their cached credentials again. (#39)
+
 ## [v0.2.0] - 2026-11-09
 
 ### Added

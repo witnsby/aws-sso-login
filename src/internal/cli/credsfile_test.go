@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/witnsby/aws-sso-login/src/internal/awsini"
+	"github.com/witnsby/aws-sso-login/src/internal/model"
 )
 
 func sampleIni(t *testing.T) *ini.File {
@@ -127,7 +130,7 @@ func TestImportCredentialsFile(t *testing.T) {
 	assert.ErrorIs(t, err, os.ErrNotExist, "default credentials file must not be touched")
 	assert.Equal(t, os.FileMode(0o600), fileMode(t, override))
 
-	f, err := ini.Load(override)
+	f, err := awsini.Load(override)
 	require.NoError(t, err)
 	assert.Equal(t, "A", f.Section("a").Key("aws_access_key_id").String())
 	assert.Equal(t, "B", f.Section("b").Key("aws_access_key_id").String())
@@ -143,4 +146,35 @@ func TestImportCredentialsFile(t *testing.T) {
 	for _, secret := range []string{fakeAccessKey, fakeSecretKey, fakeSessionToken} {
 		assert.NotContains(t, out, secret)
 	}
+}
+
+// TestUpdateCredentialsFile_KeepsSpecialCharacters covers values that go-ini
+// would otherwise cut at inline '#'/';' or unquote (issue #39).
+func TestUpdateCredentialsFile_KeepsSpecialCharacters(t *testing.T) {
+	other := "[other]\n" +
+		"aws_access_key_id = AKIDEXAMPLE\n" +
+		"aws_secret_access_key = abc#def;ghi\n" +
+		"credential_process = sh -c \"a; b\"\n" +
+		"quoted_process = \"/opt/my tool/bin\" --profile x\n"
+	path := filepath.Join(t.TempDir(), "credentials")
+	require.NoError(t, os.WriteFile(path, []byte(other), 0o600))
+
+	cred := &model.RoleCredential{AccessKeyId: "AK", SecretAccessKey: "SK", SessionToken: "ST"}
+	for i := 0; i < 2; i++ {
+		require.NoError(t, updateCredentialsFile(path, "dev", cred))
+	}
+
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	content := string(data)
+	f, err := awsini.Load(path)
+	require.NoError(t, err)
+	s := f.Section("other")
+	assert.Equal(t, "AKIDEXAMPLE", s.Key("aws_access_key_id").String())
+	assert.Equal(t, "abc#def;ghi", s.Key("aws_secret_access_key").String())
+	assert.Equal(t, `sh -c "a; b"`, s.Key("credential_process").String())
+	assert.Equal(t, `"/opt/my tool/bin" --profile x`, s.Key("quoted_process").String())
+	assert.NotContains(t, content, "\n#")
+	assert.NotContains(t, content, "\n;")
+	assert.Equal(t, 1, strings.Count(content, "[dev]"))
 }

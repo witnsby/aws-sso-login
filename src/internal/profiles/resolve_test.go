@@ -258,3 +258,48 @@ sso_region = us-east-1
 	assert.Equal(t, "us-east-1", got.SSORegion)
 	assert.Equal(t, "eu-west-1", got.Region)
 }
+
+const inlineCharsFixture = `
+[profile legacy-hash]
+sso_start_url = https://example.awsapps.com/start/#
+sso_region = us-east-1
+sso_account_id = 123456789012
+# full-line comment between keys
+sso_role_name = Admin;Ops
+; another full-line comment
+
+[profile session-hash]
+sso_session = hash
+sso_start_url = https://example.awsapps.com/start/#
+sso_account_id = 123456789012
+sso_role_name = Admin
+
+[sso-session hash]
+sso_start_url = https://example.awsapps.com/start/#
+sso_region = us-east-1
+`
+
+func TestResolve_KeepsInlineHashAndSemicolon(t *testing.T) {
+	path := writeConfig(t, inlineCharsFixture)
+
+	legacy, err := Resolve(path, "legacy-hash")
+	require.NoError(t, err)
+	assert.Equal(t, "https://example.awsapps.com/start/#", legacy.StartURL)
+	assert.Equal(t, "Admin;Ops", legacy.RoleName)
+
+	session, err := Resolve(path, "session-hash")
+	require.NoError(t, err)
+	assert.Equal(t, "https://example.awsapps.com/start/#", session.StartURL)
+	assert.Equal(t, "hash", session.SessionName)
+}
+
+func TestListSSOProfiles_KeepsInlineHash(t *testing.T) {
+	path := writeConfig(t, inlineCharsFixture)
+
+	got, err := ListSSOProfiles(path)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, "legacy-hash", got[0].Name)
+	assert.Equal(t, "https://example.awsapps.com/start/#", got[0].StartURL)
+	assert.Equal(t, "session-hash", got[1].Name)
+}
