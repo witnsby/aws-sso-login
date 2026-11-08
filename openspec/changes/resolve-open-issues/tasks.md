@@ -90,8 +90,8 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 14. Verification
 
-- [ ] 14.1 Run `make tests`, `go vet ./...` and `gofmt -l ./src` (no output), and `openspec validate resolve-open-issues --strict` and `openspec validate --all --strict`. All must pass.
-- [ ] 14.2 Build with `make build` and smoke-test against a temp `AWS_CONFIG_FILE` and `HOME` without the AWS CLI on `PATH`: `version` prints one line, `process` without a profile exits 1 with one stderr line, and `import --profile default` reports the missing AWS CLI. Verify that each exit status and stream matches the specs.
+- [x] 14.1 Run `make tests`, `go vet ./...` and `gofmt -l ./src` (no output), and `openspec validate resolve-open-issues --strict` and `openspec validate --all --strict`. All must pass.
+- [x] 14.2 Build with `make build` and smoke-test against a temp `AWS_CONFIG_FILE` and `HOME` without the AWS CLI on `PATH`: `version` prints one line, `process` without a profile exits 1 with one stderr line, and `import --profile default` reports the missing AWS CLI. Verify that each exit status and stream matches the specs.
 
 ## 15. Pull request
 
