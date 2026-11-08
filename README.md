@@ -236,8 +236,7 @@ Optional in both formats:
 
 - `region`: Default region, exported as `AWS_DEFAULT_REGION` by `export`.
 
-> **Limitations:**
-> - `import` always writes to `~/.aws/credentials`; `AWS_SHARED_CREDENTIALS_FILE` is not honored yet.
+`import` writes to the AWS shared credentials file: `~/.aws/credentials`, or the path in `AWS_SHARED_CREDENTIALS_FILE`. The file is replaced atomically and always has mode `0600`; a missing directory is created with mode `0700`. Other profiles in the file are kept. If the path is a symlink, the file it points to is updated; hard links to the file are not preserved.
 
 ---
 

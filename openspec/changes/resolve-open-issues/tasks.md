@@ -42,9 +42,9 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 7. Safe credentials file writes
 
-- [ ] 7.1 Implement `writeCredentialsFile` (design.md §7): follow symlinks, `MkdirAll 0700`, temp file `0600`, write, sync, rename, cleanup on error. Verify with tests for a new file (mode `0600`), an existing `0644` file (becomes `0600`), a missing directory (created `0700`), a symlink target updated, other sections preserved, and a failed write leaving the original intact with no temp files.
-- [ ] 7.2 Make `import` use `helper.AwsCredentialsPath()` (env override) and report the path on stderr without credential values. Verify with a test that sets `AWS_SHARED_CREDENTIALS_FILE`.
-- [ ] 7.3 Document `AWS_SHARED_CREDENTIALS_FILE` and the `0600` mode in README.md, replacing the known-limitation note, and add a CHANGELOG `Security` entry. Commit `fix: write credentials file atomically with 0600 and honor AWS_SHARED_CREDENTIALS_FILE` with `Closes #26`.
+- [x] 7.1 Implement `writeCredentialsFile` (design.md §7): follow symlinks, `MkdirAll 0700`, temp file `0600`, write, sync, rename, cleanup on error. Verify with tests for a new file (mode `0600`), an existing `0644` file (becomes `0600`), a missing directory (created `0700`), a symlink target updated, other sections preserved, and a failed write leaving the original intact with no temp files.
+- [x] 7.2 Make `import` use `helper.AwsCredentialsPath()` (env override) and report the path on stderr without credential values. Verify with a test that sets `AWS_SHARED_CREDENTIALS_FILE`.
+- [x] 7.3 Document `AWS_SHARED_CREDENTIALS_FILE` and the `0600` mode in README.md, replacing the known-limitation note, and add a CHANGELOG `Security` entry. Commit `fix: write credentials file atomically with 0600 and honor AWS_SHARED_CREDENTIALS_FILE` with `Closes #26`.
 
 ## 8. Console sign-in fixes
 

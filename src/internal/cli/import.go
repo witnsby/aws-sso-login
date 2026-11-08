@@ -67,7 +67,7 @@ func importCreds(profileName string) error {
 		return err
 	}
 
-	logrus.Infof("Wrote credentials to profile [%s] in %s\n", manager.profileName, manager.credentialsPath)
+	logrus.Infof("Wrote credentials to profile [%s] in %s", manager.profileName, manager.credentialsPath)
 	return nil
 }
 
@@ -106,7 +106,7 @@ func (m *awsCredentialsManager) updateProfileWithCreds() error {
 	return nil
 }
 
-// saveCredsFile saves the updated credentials file back to the filesystem.
+// saveCredsFile atomically writes the updated credentials file with mode 0600.
 func (m *awsCredentialsManager) saveCredsFile() error {
-	return m.credsFile.SaveTo(m.credentialsPath)
+	return writeCredentialsFile(m.credentialsPath, m.credsFile)
 }

@@ -31,6 +31,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `Usage:` block are no longer printed for runtime errors, and the trailing
   `FATA[…]` line is gone. Failures now produce exactly one log line.
 
+### Security
+
+- `import` now writes the credentials file atomically (temp file plus rename)
+  with mode `0600`, tightening existing files with looser permissions, and
+  creates a missing directory with mode `0700`. It honors
+  `AWS_SHARED_CREDENTIALS_FILE`. (#26)
+
 ## [v0.1.0] - 2026-05-06
 
 ### Added
