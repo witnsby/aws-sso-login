@@ -18,10 +18,10 @@
 
 ## 3. Narrow role-not-assigned detection (#44)
 
-- [ ] 3.1 Remove the `no access` substring match from `isSSORoleNoAccessStderr` in `src/internal/cli/credentials.go` and update its doc comment; verify the `lowercase no access phrase` case in `credentials_test.go` now expects `false` and the `ForbiddenException` / `AccessDeniedException` cases still expect `true`
-- [ ] 3.2 Add fake-runner tests: refresh stderr `proxy error: no access to upstream host` makes `import --profile dev` run `aws sso login --profile dev` once, and makes `export --profile dev` fail with the `aws sso login --profile dev` advice and empty stdout; verify both pass
-- [ ] 3.3 Add a `CHANGELOG.md` Unreleased `### Fixed` entry: only AWS `ForbiddenException`/`AccessDeniedException` errors are reported as an unassigned role (#44); verify the entry is present
-- [ ] 3.4 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate ini-fidelity-and-release-hardening --strict`, tick 3.1–3.4, then commit `fix: detect unassigned SSO roles only from AWS exception names` with `Closes #44`
+- [x] 3.1 Remove the `no access` substring match from `isSSORoleNoAccessStderr` in `src/internal/cli/credentials.go` and update its doc comment; verify the `lowercase no access phrase` case in `credentials_test.go` now expects `false` and the `ForbiddenException` / `AccessDeniedException` cases still expect `true`
+- [x] 3.2 Add fake-runner tests: refresh stderr `proxy error: no access to upstream host` makes `import --profile dev` run `aws sso login --profile dev` once, and makes `export --profile dev` fail with the `aws sso login --profile dev` advice and empty stdout; verify both pass
+- [x] 3.3 Add a `CHANGELOG.md` Unreleased `### Fixed` entry: only AWS `ForbiddenException`/`AccessDeniedException` errors are reported as an unassigned role (#44); verify the entry is present
+- [x] 3.4 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate ini-fidelity-and-release-hardening --strict`, tick 3.1–3.4, then commit `fix: detect unassigned SSO roles only from AWS exception names` with `Closes #44`
 
 ## 4. Minimum Go version with a pinned toolchain (#45)
 

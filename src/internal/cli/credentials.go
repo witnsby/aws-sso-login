@@ -164,17 +164,15 @@ func updateCachedRoleCredentials(profileName string) error {
 	return nil
 }
 
-// isSSORoleNoAccessStderr returns true when the AWS CLI stderr indicates the
-// authenticated user has no access to the configured SSO role. These cases
-// cannot be resolved by re-running `aws sso login`.
+// isSSORoleNoAccessStderr returns true when the AWS CLI stderr names
+// ForbiddenException or AccessDeniedException, which means the authenticated
+// user has no access to the configured SSO role and re-running
+// `aws sso login` cannot help. Plain "no access" text without an exception
+// name is not enough: it also appears in unrelated proxy or network errors.
 func isSSORoleNoAccessStderr(stderr string) bool {
-	if stderr == "" {
-		return false
-	}
 	lower := strings.ToLower(stderr)
 	return strings.Contains(lower, "forbiddenexception") ||
-		strings.Contains(lower, "accessdeniedexception") ||
-		strings.Contains(lower, "no access")
+		strings.Contains(lower, "accessdeniedexception")
 }
 
 // buildCacheFilePath returns the AWS CLI cache file that holds the role

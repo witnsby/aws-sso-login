@@ -89,6 +89,31 @@ func TestLoginRetryFlow(t *testing.T) {
 		assert.Empty(t, runner.CallsMatching("aws sso login"))
 	})
 
+	t.Run("unrelated no access text logs in during import", func(t *testing.T) {
+		setupAWSEnv(t, legacyConfig)
+		p := mustResolve(t, "dev")
+		proxy := fakeResult{Stderr: "proxy error: no access to upstream host", Exit: 255}
+		ok := fakeResult{Stdout: "arn", Before: func() { writeCachedCreds(t, p, time.Now().Add(time.Hour)) }}
+		runner := loginScript(t, []fakeResult{proxy, ok}, 0)
+
+		require.NoError(t, importCreds("dev"))
+		assert.Len(t, runner.CallsMatching("aws sso login --profile dev"), 1)
+	})
+
+	t.Run("unrelated no access text advises login during export", func(t *testing.T) {
+		setupAWSEnv(t, legacyConfig)
+		proxy := fakeResult{Stderr: "proxy error: no access to upstream host", Exit: 255}
+		runner := loginScript(t, []fakeResult{proxy}, 0)
+		out := captureStdout(t)
+
+		err := exportCredsToOutput("dev")
+		require.Error(t, err)
+		assert.NotErrorIs(t, err, errSSORoleNoAccess)
+		assert.Contains(t, err.Error(), "aws sso login --profile dev")
+		assert.Empty(t, out.String())
+		assert.Empty(t, runner.CallsMatching("aws sso login"))
+	})
+
 	t.Run("export and process never log in", func(t *testing.T) {
 		setupAWSEnv(t, legacyConfig)
 		runner := loginScript(t, []fakeResult{expired, expired}, 0)

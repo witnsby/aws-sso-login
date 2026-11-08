@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `sso_start_url` ends in `/#` find their cached credentials again. (#39)
 - `import` no longer re-aligns the keys of profiles it does not update; the
   credentials file is written with plain `key = value` lines. (#40)
+- Only AWS `ForbiddenException` and `AccessDeniedException` errors are
+  reported as an unassigned SSO role. Other errors that merely mention "no
+  access" now lead to `aws sso login` (`console`, `import`) or to the
+  `aws sso login` advice (`export`, `process`). (#44)
 
 ## [v0.2.0] - 2026-11-09
 
