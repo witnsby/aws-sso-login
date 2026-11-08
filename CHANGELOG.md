@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v0.2.0] - 2026-11-09
+
 ### Added
 
 - `--profile` is accepted by every command and defaults to `AWS_PROFILE`.
@@ -85,6 +87,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Interactive profile picker for `import` when `--profile` is omitted (charmbracelet/huh).
 
-[Unreleased]: https://github.com/witnsby/aws-sso-login/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/witnsby/aws-sso-login/compare/v0.2.0...HEAD
+[v0.2.0]: https://github.com/witnsby/aws-sso-login/compare/v0.1.1...v0.2.0
 [v0.1.1]: https://github.com/witnsby/aws-sso-login/compare/v0.1.0...v0.1.1
 [v0.1.0]: https://github.com/witnsby/aws-sso-login/compare/v0.0.8...v0.1.0
