@@ -51,7 +51,7 @@
 
 ## 8. Verification
 
-- [ ] 8.1 Run `make tests`, `go vet ./...`, `gofmt -l ./src` (no output), `make check-action-pins`, `openspec validate ini-fidelity-and-release-hardening --strict` and `openspec validate --all --strict`; verify all pass and `CHANGELOG.md` Unreleased lists #39–#45
+- [x] 8.1 Run `make tests`, `go vet ./...`, `gofmt -l ./src` (no output), `make check-action-pins`, `openspec validate ini-fidelity-and-release-hardening --strict` and `openspec validate --all --strict`; verify all pass and `CHANGELOG.md` Unreleased lists #39–#45
 
 ## 9. Pull request
 
