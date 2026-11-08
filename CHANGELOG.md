@@ -41,6 +41,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `console` picks the browser launcher by OS (`open` on macOS, `xdg-open` on
   Linux) and prints the URL to stderr when none is available, instead of
   trying `open` on Linux. (#30)
+- `export` now escapes `$`, `` ` ``, `"` and `\` inside its double-quoted
+  values, so `eval` assigns them verbatim. Output for ordinary credential
+  values is unchanged. (#33)
 
 ### Changed
 

@@ -76,9 +76,9 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 12. Test coverage
 
-- [ ] 12.1 Add table tests for the `export` output format (with and without region, eval-safe quoting) and the `process` JSON (Version 1, exact fields, nothing else on stdout). Verify with `go test ./src/internal/cli -run 'Export|Process'`.
-- [ ] 12.2 Fill any remaining gaps from #33 (cache, expiry, login retry, import write, console URL and logout). Verify with `go test -cover ./src/internal/cli`, which reports at least 70% coverage.
-- [ ] 12.3 Commit `test: cover credential retrieval, caching and output` with `Closes #33`.
+- [x] 12.1 Add table tests for the `export` output format (with and without region, eval-safe quoting) and the `process` JSON (Version 1, exact fields, nothing else on stdout). Verify with `go test ./src/internal/cli -run 'Export|Process'`.
+- [x] 12.2 Fill any remaining gaps from #33 (cache, expiry, login retry, import write, console URL and logout). Verify with `go test -cover ./src/internal/cli`, which reports at least 70% coverage.
+- [x] 12.3 Commit `test: cover credential retrieval, caching and output` with `Closes #33`.
 
 ## 13. Build, CI and release
 
