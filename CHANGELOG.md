@@ -12,7 +12,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `console` and `export` now offer the interactive picker too, drawn on
   stderr, when stdin and stderr are terminals; `process` never prompts.
   (#32)
-
 - A persistent `--debug` flag and the `AWS_SSO_LOGIN_DEBUG` environment
   variable enable debug logs, including raw AWS CLI stderr. (#31)
 
@@ -52,13 +51,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   stdout to stderr. (#31)
 - `console` opens the console in the profile's `region` when it is set,
   falling back to `sso_region`. (#35)
-- `import` and `console` no longer enter an infinite `aws sso login` retry loop
-  when the configured SSO role is not assigned to the user. The CLI now detects
-  `ForbiddenException` / `AccessDeniedException` from `GetRoleCredentials` and
-  exits immediately with a single, actionable error message.
-- Removed duplicate error rendering on failure: cobra's `Error:` line and
-  `Usage:` block are no longer printed for runtime errors, and the trailing
-  `FATA[…]` line is gone. Failures now produce exactly one log line.
+- Go 1.27 is required to build from source; cobra, logrus, testify and
+  go-isatty are updated. (#34)
+- CI runs on pull requests and pushes to `main` with `go vet`, a `gofmt`
+  check, tests with `-race` and `govulncheck`. Releases publish
+  `aws-sso-login_checksums.txt` (SHA-256), use the workflow token and fail on
+  real upload errors. The Makefile gains `clean`, `vet`, `fmt-check` and
+  `checksums` targets and stops at the first failing command. (#34)
 
 ### Security
 
@@ -67,11 +66,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   creates a missing directory with mode `0700`. It honors
   `AWS_SHARED_CREDENTIALS_FILE`. (#26)
 
+## [v0.1.1] - 2026-05-06
+
+### Fixed
+
+- `import` and `console` no longer enter an infinite `aws sso login` retry loop
+  when the configured SSO role is not assigned to the user. The CLI now detects
+  `ForbiddenException` / `AccessDeniedException` from `GetRoleCredentials` and
+  exits immediately with a single, actionable error message.
+- Removed duplicate error rendering on failure: cobra's `Error:` line and
+  `Usage:` block are no longer printed for runtime errors, and the trailing
+  `FATA[…]` line is gone. Failures now produce exactly one log line.
+
 ## [v0.1.0] - 2026-05-06
 
 ### Added
 
 - Interactive profile picker for `import` when `--profile` is omitted (charmbracelet/huh).
 
-[Unreleased]: https://github.com/witnsby/aws-sso-login/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/witnsby/aws-sso-login/compare/v0.1.1...HEAD
+[v0.1.1]: https://github.com/witnsby/aws-sso-login/compare/v0.1.0...v0.1.1
 [v0.1.0]: https://github.com/witnsby/aws-sso-login/compare/v0.0.8...v0.1.0

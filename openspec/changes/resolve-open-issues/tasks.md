@@ -82,11 +82,11 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 13. Build, CI and release
 
-- [ ] 13.1 Bump the `go` directive to 1.27, update cobra, logrus, huh, go-ini and testify, and run `go mod tidy`. Verify with `make tests` and `make build-all`.
-- [ ] 13.2 CI: trigger on `pull_request` and `push` to `main`, use `go-version-file: go.mod`, and add steps for `go vet ./...`, a `gofmt -l ./src` check that fails on output, `go test -race ./...`, `govulncheck` at a pinned version via `go run`, and `make build-all`. Verify with `actionlint` if available, otherwise by reviewing the YAML.
-- [ ] 13.3 Release: use `go-version-file`, `permissions: contents: write`, `GITHUB_TOKEN`, create the release only if `gh release view` fails, fail on any other error, generate `aws-sso-login_checksums.txt` with `sha256sum` and upload it, and fix the asset-name comment. Verify by reviewing the YAML and by running the checksum step locally against `./tmp`.
-- [ ] 13.4 Makefile: add `clean`, set `.SHELLFLAGS := -eu -o pipefail -c`, drop the ineffective `@set -e` lines, silence `git describe` with `2>/dev/null`, and add `vet` and `fmt-check` targets. Verify that `make clean`, `make help` and `make build` work in a tag-less clone without a git error.
-- [ ] 13.5 Add the missing `v0.1.1` section to CHANGELOG.md (move the role-access fix from `Unreleased`, dated 2026-05-06), fix the compare links, and update the README Go version. Commit `ci: upgrade Go, harden CI and release, fix Makefile` with `Closes #34`.
+- [x] 13.1 Bump the `go` directive to 1.27, update cobra, logrus, huh, go-ini and testify, and run `go mod tidy`. Verify with `make tests` and `make build-all`.
+- [x] 13.2 CI: trigger on `pull_request` and `push` to `main`, use `go-version-file: go.mod`, and add steps for `go vet ./...`, a `gofmt -l ./src` check that fails on output, `go test -race ./...`, `govulncheck` at a pinned version via `go run`, and `make build-all`. Verify with `actionlint` if available, otherwise by reviewing the YAML.
+- [x] 13.3 Release: use `go-version-file`, `permissions: contents: write`, `GITHUB_TOKEN`, create the release only if `gh release view` fails, fail on any other error, generate `aws-sso-login_checksums.txt` with `sha256sum` and upload it, and fix the asset-name comment. Verify by reviewing the YAML and by running the checksum step locally against `./tmp`.
+- [x] 13.4 Makefile: add `clean`, set `.SHELLFLAGS := -eu -o pipefail -c`, drop the ineffective `@set -e` lines, silence `git describe` with `2>/dev/null`, and add `vet` and `fmt-check` targets. Verify that `make clean`, `make help` and `make build` work in a tag-less clone without a git error.
+- [x] 13.5 Add the missing `v0.1.1` section to CHANGELOG.md (move the role-access fix from `Unreleased`, dated 2026-05-06), fix the compare links, and update the README Go version. Commit `ci: upgrade Go, harden CI and release, fix Makefile` with `Closes #34`.
 
 ## 14. Verification
 

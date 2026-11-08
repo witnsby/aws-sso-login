@@ -3,8 +3,12 @@ name: Publish Release
 on:
   push:
     tags:
-      - 'v[0-9]+\.[0-9]+\.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
       # Matches tags like v1.0.0, v2.3.5, etc.
+
+permissions:
+  contents: write
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -12,31 +16,40 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          # Full history and tags so `git describe` finds the version.
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23.4"
+          go-version-file: go.mod
 
-      - name: Install dependencies
-        run: make install-deps
+      - name: Run tests
+        run: make tests
 
       # Build all application variants (macOS & Linux, x86_64 & arm64)
       - name: Build all variants
         run: make build-all
 
-      - name: Create or update GitHub release
+      - name: Generate checksums
+        run: make checksums
+
+      - name: Create GitHub release if missing
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create ${{ github.ref_name }} \
-            --title "Release ${{ github.ref_name }}" \
-            --notes "This release was created automatically by GitHub Actions." \
-            || echo "Release already exists, proceeding to upload assets..."
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            echo "Release ${{ github.ref_name }} already exists, uploading assets to it."
+          else
+            gh release create "${{ github.ref_name }}" \
+              --title "Release ${{ github.ref_name }}" \
+              --notes "This release was created automatically by GitHub Actions."
+          fi
 
       - name: Upload assets to release
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # We'll upload all files in ./tmp that start with 'go-aws-sso-'.
-          gh release upload ${{ github.ref_name }} ./tmp/aws-sso-login_* --clobber
+          # Upload the binaries (aws-sso-login_<os>_<arch>) and the checksums file.
+          gh release upload "${{ github.ref_name }}" ./tmp/aws-sso-login_* --clobber

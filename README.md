@@ -45,7 +45,7 @@ A Go command-line tool that simplifies AWS IAM Identity Center (AWS SSO) authent
 - **AWS CLI v2** installed and available in `PATH`. `aws-sso-login` calls `aws sso login` and `aws sts get-caller-identity` and reads the credentials the AWS CLI caches in `~/.aws/cli/cache`.
 - At least one SSO profile configured in `~/.aws/config` (see [Configuration](#configuration)).
 - Your SSO user must be assigned to the account and permission set (role) used by the profile.
-- **Go** (version from `go.mod`) only if you build from source.
+- **Go 1.27 or newer** (the version in `go.mod`) only if you build from source.
 
 Supported platforms: macOS and Linux on amd64 and arm64. Windows is untested.
 
@@ -277,8 +277,12 @@ The project uses [Logrus](https://github.com/sirupsen/logrus).
 | Coverage report     | `make cover`         |
 | Build (host)        | `make build`         |
 | Build all platforms | `make build-all`     |
+| Vet                 | `make vet`           |
+| Format check        | `make fmt-check`     |
+| Checksums           | `make checksums`     |
+| Clean               | `make clean`         |
 
-Binaries are written to `./tmp/`. See [AGENTS.md](AGENTS.md) for repository layout and coding conventions. Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec); project rules are in [`openspec/config.yaml`](openspec/config.yaml).
+Binaries are written to `./tmp/`. Each release also ships `aws-sso-login_checksums.txt`; verify a download with `sha256sum -c aws-sso-login_checksums.txt --ignore-missing` (or `shasum -a 256 -c` on macOS). See [AGENTS.md](AGENTS.md) for repository layout and coding conventions. Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec); project rules are in [`openspec/config.yaml`](openspec/config.yaml).
 
 ---
 
