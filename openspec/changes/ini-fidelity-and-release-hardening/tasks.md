@@ -39,10 +39,10 @@
 
 ## 6. Release notes from CHANGELOG.md (#43)
 
-- [ ] 6.1 Add a `release-notes` Makefile target (listed in `make help`) taking `VERSION=vX.Y.Z` that writes the `## [vX.Y.Z]` section body of `CHANGELOG.md` to `tmp/release-notes.md` and exits non-zero with `CHANGELOG.md has no entry for vX.Y.Z` when it is missing or empty; verify `make release-notes VERSION=v0.2.0` yields only the v0.2.0 entries and `VERSION=v9.9.9` fails
-- [ ] 6.2 In `publish_release.yml`, run `make release-notes VERSION=${{ github.ref_name }}` right after checkout and pass `--notes-file tmp/release-notes.md` to `gh release create`; keep the existing-release path uploading assets only; verify with `actionlint` (or by review if unavailable) that the workflow is valid
-- [ ] 6.3 Update the README release section to say release notes come from `CHANGELOG.md` and a tag needs a matching section; add a `CHANGELOG.md` Unreleased `### Changed` entry (#43); verify both are present
-- [ ] 6.4 Run `make tests` and `openspec validate ini-fidelity-and-release-hardening --strict`, tick 6.1–6.4, then commit `ci: publish release notes from CHANGELOG.md` with `Closes #43`
+- [x] 6.1 Add a `release-notes` Makefile target (listed in `make help`) taking `VERSION=vX.Y.Z` that writes the `## [vX.Y.Z]` section body of `CHANGELOG.md` to `tmp/release-notes.md` and exits non-zero with `CHANGELOG.md has no entry for vX.Y.Z` when it is missing or empty; verify `make release-notes VERSION=v0.2.0` yields only the v0.2.0 entries and `VERSION=v9.9.9` fails
+- [x] 6.2 In `publish_release.yml`, run `make release-notes VERSION=${{ github.ref_name }}` right after checkout and pass `--notes-file tmp/release-notes.md` to `gh release create`; keep the existing-release path uploading assets only; verify with `actionlint` (or by review if unavailable) that the workflow is valid
+- [x] 6.3 Update the README release section to say release notes come from `CHANGELOG.md` and a tag needs a matching section; add a `CHANGELOG.md` Unreleased `### Changed` entry (#43); verify both are present
+- [x] 6.4 Run `make tests` and `openspec validate ini-fidelity-and-release-hardening --strict`, tick 6.1–6.4, then commit `ci: publish release notes from CHANGELOG.md` with `Closes #43`
 
 ## 7. Dependabot configuration (#41)
 

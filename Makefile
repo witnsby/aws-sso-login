@@ -84,6 +84,26 @@ checksums:
 	if command -v sha256sum >/dev/null; then sha256sum $(OUT)_*_* > $(OUT)_checksums.txt; \
 	else shasum -a 256 $(OUT)_*_* > $(OUT)_checksums.txt; fi
 
+# Release notes for VERSION: the body of its "## [VERSION]" section in
+# CHANGELOG.md, up to the next "## [" heading or the link references.
+# Fails when the section is missing or empty.
+CHANGELOG ?= CHANGELOG.md
+.PHONY: release-notes
+release-notes:
+	@mkdir -p $(BUILD_DIR)
+	@awk -v v="$(VERSION)" ' \
+		index($$0, "## [" v "]") == 1 { found = 1; next } \
+		found && (/^## \[/ || /^\[[^]]+\]: /) { exit } \
+		found { lines[++n] = $$0 } \
+		END { \
+			s = 1; while (s <= n && lines[s] ~ /^[[:space:]]*$$/) s++; \
+			e = n; while (e >= s && lines[e] ~ /^[[:space:]]*$$/) e--; \
+			for (i = s; i <= e; i++) print lines[i] \
+		}' $(CHANGELOG) > $(BUILD_DIR)/release-notes.md
+	@if [ ! -s $(BUILD_DIR)/release-notes.md ]; then \
+		echo "$(CHANGELOG) has no entry for $(VERSION)"; exit 1; fi
+	@echo "Release notes for $(VERSION) written to $(BUILD_DIR)/release-notes.md"
+
 # Remove build output
 .PHONY: clean
 clean:
@@ -102,4 +122,5 @@ help:
 	@echo "  build           Build the application (single platform)"
 	@echo "  build-all       Build the application for multiple platforms"
 	@echo "  checksums       Write SHA-256 checksums for the built binaries"
+	@echo "  release-notes   Write the CHANGELOG.md section for VERSION=vX.Y.Z to tmp/release-notes.md"
 	@echo "  clean           Remove build artifacts"

@@ -281,12 +281,13 @@ The project uses [Logrus](https://github.com/sirupsen/logrus).
 | Format check        | `make fmt-check`         |
 | Toolchain check     | `make check-toolchain`   |
 | Action pin check    | `make check-action-pins` |
+| Release notes       | `make release-notes VERSION=vX.Y.Z` |
 | Checksums           | `make checksums`         |
 | Clean               | `make clean`             |
 
 GitHub Actions in `.github/workflows/` are referenced by full commit SHA with the version in a comment (`uses: owner/repo@<sha> # vX.Y.Z`); CI runs `make check-action-pins` and fails on tag or branch references. Dependabot keeps the pins up to date.
 
-Binaries are written to `./tmp/`. Each release also ships `aws-sso-login_checksums.txt`; verify a download with `sha256sum -c aws-sso-login_checksums.txt --ignore-missing` (or `shasum -a 256 -c` on macOS). See [AGENTS.md](AGENTS.md) for repository layout and coding conventions. Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec); project rules are in [`openspec/config.yaml`](openspec/config.yaml).
+Pushing a `vX.Y.Z` tag publishes a release whose description is the `## [vX.Y.Z]` section of `CHANGELOG.md`; the release workflow fails before publishing anything when that section is missing or empty, so add it before tagging. Binaries are written to `./tmp/`. Each release also ships `aws-sso-login_checksums.txt`; verify a download with `sha256sum -c aws-sso-login_checksums.txt --ignore-missing` (or `shasum -a 256 -c` on macOS). See [AGENTS.md](AGENTS.md) for repository layout and coding conventions. Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec); project rules are in [`openspec/config.yaml`](openspec/config.yaml).
 
 ---
 

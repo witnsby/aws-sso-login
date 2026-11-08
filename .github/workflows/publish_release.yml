@@ -20,6 +20,11 @@ jobs:
           # Full history and tags so `git describe` finds the version.
           fetch-depth: 0
 
+      # Fails before anything is published when CHANGELOG.md has no
+      # section for this tag.
+      - name: Extract release notes from CHANGELOG.md
+        run: make release-notes VERSION="${{ github.ref_name }}"
+
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
@@ -47,7 +52,7 @@ jobs:
           else
             gh release create "${{ github.ref_name }}" \
               --title "Release ${{ github.ref_name }}" \
-              --notes "This release was created automatically by GitHub Actions."
+              --notes-file tmp/release-notes.md
           fi
 
       - name: Upload assets to release

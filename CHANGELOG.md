@@ -28,6 +28,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - GitHub Actions in the CI and release workflows are pinned to full commit
   SHAs, and CI fails on tag or branch references (`make check-action-pins`).
   (#42)
+- GitHub release descriptions are taken from the tag's section in
+  `CHANGELOG.md` (`make release-notes`); the release workflow fails before
+  publishing when that section is missing. (#43)
 
 ## [v0.2.0] - 2026-11-09
 
