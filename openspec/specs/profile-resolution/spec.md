@@ -1,0 +1,108 @@
+# profile-resolution Specification
+
+## Purpose
+Defines how every command turns a profile name (from `--profile`, `AWS_PROFILE` or the interactive picker) into a validated AWS SSO configuration read from the AWS config file, for both legacy and sso-session profiles.
+
+## Requirements
+
+### Requirement: Profile name source precedence
+Every command SHALL choose the profile name from, in order: a non-empty `--profile` flag, then a non-empty `AWS_PROFILE` environment variable, then the interactive picker (only where interactive selection is allowed). The `--profile` flag SHALL be accepted by every subcommand with the same name and empty default.
+
+#### Scenario: Explicit --profile wins over AWS_PROFILE
+- **WHEN** the user runs `aws-sso-login export --profile dev` with `AWS_PROFILE=prod` set
+- **THEN** credentials for profile `dev` are exported
+- **AND** the picker is not shown
+
+#### Scenario: AWS_PROFILE used when the flag is omitted
+- **WHEN** the user runs `aws-sso-login console` with `AWS_PROFILE=dev` set and no `--profile`
+- **THEN** the console sign-in uses profile `dev`
+- **AND** the picker is not shown
+
+### Requirement: Interactive picker availability
+When no profile name comes from the flag or `AWS_PROFILE`, `console`, `export` and `import` SHALL show the interactive picker only if both stdin and stderr are terminals. The picker SHALL render on stderr. Otherwise these commands, and `process` in every case, SHALL fail with an error that asks for `--profile` and exit with status 1.
+
+#### Scenario: Picker on a terminal
+- **WHEN** the user runs `aws-sso-login import` on a terminal with no `--profile` and no `AWS_PROFILE`
+- **THEN** the picker lists the SSO-enabled profiles on stderr
+- **AND** credentials for the chosen profile are imported
+
+#### Scenario: Picker keeps export eval-safe
+- **WHEN** the user runs `eval "$(aws-sso-login export)"` on a terminal with no `--profile` and no `AWS_PROFILE`
+- **THEN** the picker is drawn on stderr
+- **AND** stdout contains only the `export` lines for the chosen profile
+
+#### Scenario: Non-interactive invocation without a profile
+- **WHEN** `aws-sso-login import` runs with stdin not attached to a terminal and with no `--profile` and no `AWS_PROFILE`
+- **THEN** stderr reports that `--profile` must be specified
+- **AND** stdout is empty and the exit status is 1
+
+#### Scenario: process never prompts
+- **WHEN** `aws-sso-login process` runs on a terminal with no `--profile` and no `AWS_PROFILE`
+- **THEN** no picker is shown
+- **AND** stderr reports that `--profile` must be specified, stdout is empty and the exit status is 1
+
+#### Scenario: Picker cancelled
+- **WHEN** the user cancels the picker
+- **THEN** stderr reports that profile selection was cancelled
+- **AND** stdout is empty and the exit status is 1
+
+### Requirement: Profile section lookup
+A profile name SHALL map to its AWS config section the same way for every command and for the picker: `default` SHALL map to `[default]`, falling back to `[profile default]`. Every other name SHALL map to `[profile <name>]`. The config file SHALL be read from `AWS_CONFIG_FILE` when set, otherwise from `~/.aws/config`.
+
+#### Scenario: Default profile via --profile
+- **WHEN** `~/.aws/config` contains an SSO-enabled `[default]` section and the user runs `aws-sso-login import --profile default`
+- **THEN** credentials are imported for the `default` profile
+
+#### Scenario: Default profile via the picker
+- **WHEN** the picker lists `default` and the user selects it
+- **THEN** credentials are imported for the `default` profile
+
+#### Scenario: AWS_CONFIG_FILE honored
+- **WHEN** `AWS_CONFIG_FILE` points to a file that defines `[profile dev]`
+- **THEN** `--profile dev` resolves from that file and `~/.aws/config` is not read
+
+#### Scenario: Missing profile
+- **WHEN** the user runs any command with `--profile missing` and no such section exists
+- **THEN** stderr reports that profile `missing` was not found in the config file path
+- **AND** stdout is empty and the exit status is 1
+
+### Requirement: Legacy SSO profiles
+A profile that has no `sso_session` key SHALL be valid only when it defines `sso_start_url`, `sso_region`, `sso_account_id` and `sso_role_name`.
+
+#### Scenario: Complete legacy profile
+- **WHEN** `[profile dev]` defines `sso_start_url`, `sso_region`, `sso_account_id` and `sso_role_name`
+- **THEN** the profile resolves using those values
+
+#### Scenario: Incomplete legacy profile
+- **WHEN** `[profile dev]` defines `sso_start_url` but not `sso_role_name`
+- **THEN** stderr reports that `sso_role_name` is missing in profile `dev`
+- **AND** the exit status is 1
+
+### Requirement: sso-session profiles
+A profile with an `sso_session` key SHALL read `sso_start_url` and `sso_region` from the `[sso-session <name>]` section, and `sso_account_id` and `sso_role_name` from the profile. A missing session section or key, or a profile-level `sso_start_url` or `sso_region` that differs from the session's value, SHALL be an error.
+
+#### Scenario: Complete sso-session profile
+- **WHEN** `[profile dev]` has `sso_session = corp`, `sso_account_id` and `sso_role_name`, and `[sso-session corp]` has `sso_start_url` and `sso_region`
+- **THEN** the profile resolves with the start URL and region from `[sso-session corp]`
+
+#### Scenario: Referenced session section missing
+- **WHEN** `[profile dev]` has `sso_session = corp` and there is no `[sso-session corp]` section
+- **THEN** stderr reports that sso-session `corp` referenced by profile `dev` was not found
+- **AND** the exit status is 1
+
+#### Scenario: Conflicting start URL
+- **WHEN** `[profile dev]` has `sso_session = corp` and an `sso_start_url` that differs from the one in `[sso-session corp]`
+- **THEN** stderr reports the conflicting `sso_start_url` values for profile `dev`
+- **AND** the exit status is 1
+
+### Requirement: Picker lists all SSO-enabled profiles
+The picker SHALL list every profile that resolves as a legacy or sso-session SSO profile, including `default`, sorted case-insensitively by name, and showing name, account ID and role name. When there are none, the command SHALL fail with an error naming the config file.
+
+#### Scenario: Mixed profile formats
+- **WHEN** the config file defines one legacy SSO profile, one sso-session profile and one non-SSO profile
+- **THEN** the picker lists the two SSO profiles and not the non-SSO profile
+
+#### Scenario: No SSO profiles
+- **WHEN** the config file defines no SSO-enabled profiles and the picker would be shown
+- **THEN** stderr reports that no SSO-enabled profiles were found in the config file path
+- **AND** the exit status is 1
