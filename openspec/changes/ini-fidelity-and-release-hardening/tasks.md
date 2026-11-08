@@ -46,8 +46,8 @@
 
 ## 7. Dependabot configuration (#41)
 
-- [ ] 7.1 Remove the `docker` entry from `.github/dependabot.yml` and set `commit-message.prefix: "chore"` with `include: "scope"` for `github-actions` and `gomod`; verify the file parses (`python3 -c 'import yaml,sys; yaml.safe_load(open(".github/dependabot.yml"))'`) and lists only those two ecosystems
-- [ ] 7.2 Run `openspec validate ini-fidelity-and-release-hardening --strict`, tick 7.1–7.2, then commit `chore: drop unused docker ecosystem from dependabot` with `Closes #41`
+- [x] 7.1 Remove the `docker` entry from `.github/dependabot.yml` and set `commit-message.prefix: "chore"` with `include: "scope"` for `github-actions` and `gomod`; verify the file parses (`python3 -c 'import yaml,sys; yaml.safe_load(open(".github/dependabot.yml"))'`) and lists only those two ecosystems
+- [x] 7.2 Run `openspec validate ini-fidelity-and-release-hardening --strict`, tick 7.1–7.2, then commit `chore: drop unused docker ecosystem from dependabot` with `Closes #41`
 
 ## 8. Verification
 
