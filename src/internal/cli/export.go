@@ -30,7 +30,7 @@ func exportCredsToOutput(profileName string) error {
 	}
 
 	awsRegion := profile.Region
-	roleCred, err := getRoleCredentials(profileName, profile, true)
+	roleCred, err := getRoleCredentials(profileName, profile)
 	if err != nil {
 		return err
 	}
@@ -49,6 +49,6 @@ func exportCredsToOutput(profileName string) error {
 
 func printEnvVariable(name, value string) {
 	if value != "" {
-		fmt.Printf("export %s=%q\n", name, value)
+		fmt.Fprintf(stdout, "export %s=%q\n", name, value)
 	}
 }

@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"github.com/witnsby/aws-sso-login/src/internal/helper"
 	"github.com/witnsby/aws-sso-login/src/internal/profiles"
 	"net/url"
@@ -27,7 +26,6 @@ func console(profile string, forceLogout bool, logoutWait int) error {
 	manager.region = consoleRegion(manager.profile)
 	manager.account = manager.profile.AccountID
 	if err = manager.validateProfileParams(); err != nil {
-		logrus.Error(err)
 		return err
 	}
 	// Construct the sign-in URL

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -28,14 +29,46 @@ func newRootCmd() *cobra.Command {
 		// cobra still prints separately). SilenceErrors prevents the
 		// duplicate "Error: ..." line — Run() owns user-facing error
 		// rendering below.
-		SilenceUsage:      true,
-		SilenceErrors:     true,
-		PersistentPreRunE: resolveProfileFlag,
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := configureLogging(cmd); err != nil {
+				return err
+			}
+			return resolveProfileFlag(cmd, args)
+		},
 	}
 	rootCmd.PersistentFlags().String("profile", "",
 		"AWS profile name (defaults to $AWS_PROFILE; omit both to choose interactively)")
+	rootCmd.PersistentFlags().Bool("debug", false,
+		"Enable debug logs on stderr (also enabled by AWS_SSO_LOGIN_DEBUG=1)")
 	rootCmd.AddCommand(newConsoleCmd(), newExportCmd(), newImportCmd(), newProcessCmd(), newVersionCmd())
 	return rootCmd
+}
+
+// configureLogging sets the log level for the command being run: debug when
+// --debug or AWS_SSO_LOGIN_DEBUG is set, warn for the machine-readable
+// commands (process, export), info otherwise. Logs go to stderr.
+func configureLogging(cmd *cobra.Command) error {
+	debug, err := cmd.Flags().GetBool("debug")
+	if err != nil {
+		return fmt.Errorf("reading --debug: %w", err)
+	}
+	switch {
+	case debug || debugFromEnv():
+		logrus.SetLevel(logrus.DebugLevel)
+	case cmd.Name() == "process" || cmd.Name() == "export":
+		logrus.SetLevel(logrus.WarnLevel)
+	default:
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+	return nil
+}
+
+// debugFromEnv reports whether AWS_SSO_LOGIN_DEBUG is "1" or "true".
+func debugFromEnv() bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("AWS_SSO_LOGIN_DEBUG")))
+	return v == "1" || v == "true"
 }
 
 // resolveProfileFlag resolves the profile name once for every command that
@@ -142,7 +175,7 @@ func newVersionCmd() *cobra.Command {
 		Use:   "version",
 		Short: "Print the version information",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(getVersion())
+			fmt.Fprintln(stdout, getVersion())
 		},
 	}
 }
@@ -154,14 +187,20 @@ func Run() {
 	}
 }
 
-// reportAndExit prints a single concise message for known failure modes and
-// exits with status 1. Detailed/verbose context is left to debug-level logs.
+// reportAndExit reports err once and exits with status 1.
 func reportAndExit(err error) {
+	reportError(err)
+	os.Exit(1)
+}
+
+// reportError renders the single user-facing message for a failure.
+// Commands return wrapped errors without logging them, so this is the only
+// place an error is printed.
+func reportError(err error) {
 	if errors.Is(err, errSSORoleNoAccess) {
 		logrus.Errorf("No access: the configured SSO role is not assigned to your user. "+
 			"Ask your AWS administrator to grant access. (%v)", err)
-		os.Exit(1)
+		return
 	}
 	logrus.Error(err)
-	os.Exit(1)
 }

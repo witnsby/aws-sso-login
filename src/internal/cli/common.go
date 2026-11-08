@@ -73,12 +73,11 @@ type awsCredentialsManager struct {
 func (m *awsCredentialsManager) retrieveAndSetProfile() error {
 	profile, err := resolveProfile(m.profileName)
 	if err != nil {
-		logrus.Info(err)
 		return err
 	}
 	m.profile = profile
 
-	roleCred, err := getRoleCredentials(m.profileName, m.profile, false)
+	roleCred, err := getRoleCredentials(m.profileName, m.profile)
 	if err == nil {
 		m.roleCred = roleCred
 		return nil
@@ -93,7 +92,7 @@ func (m *awsCredentialsManager) retrieveAndSetProfile() error {
 		return loginErr
 	}
 
-	roleCred, err = getRoleCredentials(m.profileName, m.profile, false)
+	roleCred, err = getRoleCredentials(m.profileName, m.profile)
 	if err != nil {
 		return err
 	}
@@ -123,7 +122,7 @@ func (m *awsCredentialsManager) performSSOLogin() error {
 
 // getRoleCredentials either reads from the local AWS CLI cache or triggers
 // the AWS CLI to refresh the cache by calling `aws sts get-caller-identity`.
-func getRoleCredentials(profileName string, profile profiles.Profile, silent bool) (*model.RoleCredential, error) {
+func getRoleCredentials(profileName string, profile profiles.Profile) (*model.RoleCredential, error) {
 	// Try reading from the CLI cache
 	roleCred, err := getCachedRoleCredentials(profile)
 	if err == nil && roleCred != nil {
@@ -135,7 +134,7 @@ func getRoleCredentials(profileName string, profile profiles.Profile, silent boo
 	}
 
 	// If we couldn't read them, or they're expired, attempt to refresh
-	if err = updateCachedRoleCredentials(profileName, silent); err != nil {
+	if err = updateCachedRoleCredentials(profileName); err != nil {
 		return nil, err
 	}
 
@@ -161,7 +160,7 @@ func getRoleCredentials(profileName string, profile profiles.Profile, silent boo
 // AccessDeniedException returned by the SSO GetRoleCredentials API), the
 // returned error wraps errSSORoleNoAccess so callers can distinguish it from
 // transient/expired-token failures.
-func updateCachedRoleCredentials(profileName string, silent bool) error {
+func updateCachedRoleCredentials(profileName string) error {
 	cmd, err := awsCommand("sts", "get-caller-identity",
 		"--query", "Arn", "--output", "text", "--profile", profileName)
 	if err != nil {
@@ -184,9 +183,7 @@ func updateCachedRoleCredentials(profileName string, silent bool) error {
 		}
 		return fmt.Errorf("could not refresh credentials for profile %q; run 'aws sso login --profile %s'", profileName, profileName)
 	}
-	if !silent {
-		fmt.Printf("Updated credentials for: %s\n", string(output))
-	}
+	logrus.Infof("Updated credentials for %s", strings.TrimSpace(string(output)))
 	return nil
 }
 
@@ -247,7 +244,6 @@ func cacheKey(profile profiles.Profile) (string, error) {
 func getCachedRoleCredentials(profile profiles.Profile) (*model.RoleCredential, error) {
 	fullPath, err := buildCacheFilePath(profile)
 	if err != nil {
-		logrus.Error(err)
 		return nil, err
 	}
 	// Attempt to read

@@ -98,7 +98,7 @@ sso_region = us-east-1
 	p := mustResolve(t, "dev")
 	writeCachedCreds(t, p, now().Add(time.Hour))
 
-	rc, err := getRoleCredentials("dev", p, true)
+	rc, err := getRoleCredentials("dev", p)
 	require.NoError(t, err)
 	assert.Equal(t, fakeAccessKey, rc.AccessKeyId)
 	assert.Empty(t, runner.Calls())

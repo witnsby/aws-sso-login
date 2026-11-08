@@ -60,7 +60,7 @@ func TestGetRoleCredentials_Refresh(t *testing.T) {
 			}
 		})
 
-		rc, err := getRoleCredentials("dev", p, true)
+		rc, err := getRoleCredentials("dev", p)
 		require.NoError(t, err)
 		assert.Equal(t, base.Add(time.Hour).Format(time.RFC3339), rc.Expiration)
 
@@ -76,7 +76,7 @@ func TestGetRoleCredentials_Refresh(t *testing.T) {
 		writeCachedCreds(t, p, base.Add(30*time.Minute))
 		runner := installFakeRunner(t, nil)
 
-		_, err := getRoleCredentials("dev", p, true)
+		_, err := getRoleCredentials("dev", p)
 		require.NoError(t, err)
 		assert.Empty(t, runner.Calls())
 	})
@@ -88,7 +88,7 @@ func TestGetRoleCredentials_Refresh(t *testing.T) {
 		writeCachedCreds(t, p, base.Add(2*time.Minute))
 		installFakeRunner(t, func(string, []string) fakeResult { return fakeResult{} })
 
-		_, err := getRoleCredentials("dev", p, true)
+		_, err := getRoleCredentials("dev", p)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "credentials for 'dev' are expired")
 	})

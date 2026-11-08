@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   stderr, when stdin and stderr are terminals; `process` never prompts.
   (#32)
 
+- A persistent `--debug` flag and the `AWS_SSO_LOGIN_DEBUG` environment
+  variable enable debug logs, including raw AWS CLI stderr. (#31)
+
 ### Fixed
 
 - Profiles that reference an `[sso-session <name>]` section (the default
@@ -41,6 +44,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- `process` and `export` log only warnings and errors by default, every
+  error is reported once, and the "Updated credentials" notice moved from
+  stdout to stderr. (#31)
 - `console` opens the console in the profile's `region` when it is set,
   falling back to `sso_region`. (#35)
 - `import` and `console` no longer enter an infinite `aws sso login` retry loop

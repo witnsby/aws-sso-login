@@ -253,7 +253,9 @@ Optional in both formats:
 The project uses [Logrus](https://github.com/sirupsen/logrus).
 
 - Logs are written to `stderr`, so `stdout` of `export` and `process` stays machine-readable.
-- The log level is `info`. Debug-level messages, such as raw AWS CLI stderr, are not shown because there is no flag to change the level yet.
+- `process` and `export` log only warnings and errors by default; `console` and `import` also log progress (`info`).
+- Pass `--debug` to any command, or set `AWS_SSO_LOGIN_DEBUG=1` (or `true`), to see debug logs such as the raw stderr of AWS CLI calls. Credentials and sign-in tokens are never logged.
+- Each failure is reported once, as a single error line.
 
 ---
 

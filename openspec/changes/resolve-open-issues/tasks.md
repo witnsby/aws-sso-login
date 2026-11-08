@@ -62,10 +62,10 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 10. Logging
 
-- [ ] 10.1 Add a persistent `--debug` flag and `AWS_SSO_LOGIN_DEBUG` (`1` or `true`), and set the log level in `PersistentPreRunE` (debug, warn for `process` and `export`, info otherwise). Verify with tests that capture logrus output for each case.
-- [ ] 10.2 Remove log-and-return duplicates across `cli` so `reportAndExit` reports each error once, and move the "Updated credentials for" message to an info log on stderr. Verify with a test that a missing profile in `process` yields exactly one stderr line and empty stdout.
-- [ ] 10.3 Add a test that runs `export`, `process` and `import` with debug on and fake credentials, and asserts no credential value appears in stderr.
-- [ ] 10.4 Update the README logging section (`--debug`, env var, levels) and add a CHANGELOG `Added` entry. Commit `feat: add --debug and report each error once` with `Closes #31`.
+- [x] 10.1 Add a persistent `--debug` flag and `AWS_SSO_LOGIN_DEBUG` (`1` or `true`), and set the log level in `PersistentPreRunE` (debug, warn for `process` and `export`, info otherwise). Verify with tests that capture logrus output for each case.
+- [x] 10.2 Remove log-and-return duplicates across `cli` so `reportAndExit` reports each error once, and move the "Updated credentials for" message to an info log on stderr. Verify with a test that a missing profile in `process` yields exactly one stderr line and empty stdout.
+- [x] 10.3 Add a test that runs `export`, `process` and `import` with debug on and fake credentials, and asserts no credential value appears in stderr.
+- [x] 10.4 Update the README logging section (`--debug`, env var, levels) and add a CHANGELOG `Added` entry. Commit `feat: add --debug and report each error once` with `Closes #31`.
 
 ## 11. Code-quality cleanups
 

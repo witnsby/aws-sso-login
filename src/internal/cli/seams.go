@@ -31,6 +31,8 @@ var (
 	}
 	// goos is the operating system the binary runs on.
 	goos = runtime.GOOS
+	// stdout receives machine-readable output (export, process, version).
+	stdout io.Writer = os.Stdout
 	// stderrOut receives user-facing messages that are not logs.
 	stderrOut io.Writer = os.Stderr
 	// openURL opens a URL in the user's browser.
