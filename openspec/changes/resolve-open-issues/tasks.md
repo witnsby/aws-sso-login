@@ -4,10 +4,10 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 1. Test seams and path helpers
 
-- [ ] 1.1 Replace `user.Current()` with `os.UserHomeDir()` in `helper`. Add `AwsConfigPath()` (honors `AWS_CONFIG_FILE`), `AwsCredentialsPath()` (honors `AWS_SHARED_CREDENTIALS_FILE`) and `AwsCliCachePath()`. Remove `cli.GetAwsConfigPath` and update callers. Verify with table tests in `helper/helper_test.go` covering env set and unset with `HOME` pointing at a temp dir.
-- [ ] 1.2 Add package-level seams `lookPath`, `now`, `httpClient`, `federationEndpoint`, `isInteractive` and `goos` in `cli` next to `execCommand`, and route existing `exec.Command`, `time.Now` and `http.Get` calls through them. Verify that `go build ./...` succeeds and existing tests still pass.
-- [ ] 1.3 Add a reusable fake command runner test helper (records argv, returns scripted stdout, stderr and exit code). Verify with a self-test in `cli/testhelpers_test.go`.
-- [ ] 1.4 Commit `refactor: inject home dir, clock, HTTP and command seams` with `Refs #33` and `Refs #35`.
+- [x] 1.1 Replace `user.Current()` with `os.UserHomeDir()` in `helper`. Add `AwsConfigPath()` (honors `AWS_CONFIG_FILE`), `AwsCredentialsPath()` (honors `AWS_SHARED_CREDENTIALS_FILE`) and `AwsCliCachePath()`. Remove `cli.GetAwsConfigPath` and update callers. Verify with table tests in `helper/helper_test.go` covering env set and unset with `HOME` pointing at a temp dir.
+- [x] 1.2 Add package-level seams `lookPath`, `now`, `httpClient`, `federationEndpoint`, `isInteractive` and `goos` in `cli` next to `execCommand`, and route existing `exec.Command`, `time.Now` and `http.Get` calls through them. Verify that `go build ./...` succeeds and existing tests still pass.
+- [x] 1.3 Add a reusable fake command runner test helper (records argv, returns scripted stdout, stderr and exit code). Verify with a self-test in `cli/testhelpers_test.go`.
+- [x] 1.4 Commit `refactor: inject home dir, clock, HTTP and command seams` with `Refs #33` and `Refs #35`.
 
 ## 2. Single profile resolution with default and sso-session support
 

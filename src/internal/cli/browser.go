@@ -2,14 +2,10 @@ package cli
 
 import (
 	"fmt"
-	"os/exec"
 )
 
-// By default, these point to the real "exec.Command" and "fmt.Printf".
-var (
-	execCommand = exec.Command
-	printFunc   = fmt.Printf
-)
+// printFunc defaults to fmt.Printf; tests replace it to capture output.
+var printFunc = fmt.Printf
 
 // openBrowser tries to open a browser using `xdg-open`, `open`, or `start`.
 func openBrowser(targetURL string) {

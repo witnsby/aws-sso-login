@@ -24,7 +24,7 @@ func resolveProfileName(flagValue string) (string, error) {
 		return flagValue, nil
 	}
 
-	configPath, err := GetAwsConfigPath()
+	configPath, err := helper.AwsConfigPath()
 	if err != nil {
 		return "", fmt.Errorf("could not determine AWS config path: %w", err)
 	}
@@ -73,7 +73,7 @@ func importCreds(profileName string) error {
 
 // loadOrInitCredsFile loads the credentials file or initializes an empty one if it doesn't exist.
 func (m *awsCredentialsManager) loadOrInitCredsFile() error {
-	path, err := helper.GetAwsCredentialsPath()
+	path, err := helper.AwsCredentialsPath()
 	if err != nil {
 		return err
 	}

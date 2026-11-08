@@ -11,11 +11,8 @@ import (
 	"github.com/witnsby/aws-sso-login/src/internal/helper"
 	"github.com/witnsby/aws-sso-login/src/internal/model"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
-	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -80,7 +77,7 @@ func (m *awsCredentialsManager) retrieveAndSetProfile() error {
 
 // performSSOLogin runs the AWS CLI SSO login command for the specified profile and returns an error if the command fails.
 func (m *awsCredentialsManager) performSSOLogin() error {
-	cmd := exec.Command("aws", "sso", "login", "--profile", m.profileName)
+	cmd := execCommand("aws", "sso", "login", "--profile", m.profileName)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
@@ -133,7 +130,7 @@ func getRoleCredentials(profileName string, profile *ini.Section, silent bool) (
 // returned error wraps errSSORoleNoAccess so callers can distinguish it from
 // transient/expired-token failures.
 func updateCachedRoleCredentials(profileName string, silent bool) error {
-	cmd := exec.Command("aws", "sts", "get-caller-identity",
+	cmd := execCommand("aws", "sts", "get-caller-identity",
 		"--query", "Arn", "--output", "text", "--profile", profileName)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -169,7 +166,7 @@ func isSSORoleNoAccessStderr(stderr string) bool {
 }
 
 func buildCacheFilePath(profile *ini.Section) (string, error) {
-	cachePath, err := helper.GetAwsCliCachePath()
+	cachePath, err := helper.AwsCliCachePath()
 	if err != nil {
 		return "", err
 	}
@@ -223,7 +220,7 @@ func isExpired(expirationTime string) bool {
 		// If parsing fails, assume it's expired so user can refresh
 		return true
 	}
-	return time.Now().After(parsedTime)
+	return now().After(parsedTime)
 }
 
 // parseExpirationTime attempts to parse a string into a time.Time using multiple layouts
@@ -250,7 +247,7 @@ func getSigninToken(rc *model.RoleCredential) (string, error) {
 	sessB, _ := json.Marshal(sess)
 	params.Set("Session", string(sessB))
 
-	fedURL := "https://signin.aws.amazon.com/federation?" + params.Encode()
+	fedURL := federationEndpoint + "?" + params.Encode()
 
 	out, err := getURL(fedURL)
 	if err != nil {
@@ -268,7 +265,7 @@ func getSigninToken(rc *model.RoleCredential) (string, error) {
 
 func getURL(raw string) ([]byte, error) {
 	// Perform an HTTP GET request
-	resp, err := http.Get(raw)
+	resp, err := httpClient.Get(raw)
 	if err != nil {
 		return nil, err
 	}
@@ -293,9 +290,8 @@ func getURL(raw string) ([]byte, error) {
 // It ensures the specified profile contains all required attributes for AWS SSO workflows.
 func retrieveProfile(profileName string) (*ini.Section, error) {
 	// Get the path to the AWS configuration file.
-	configPath, err := GetAwsConfigPath()
+	configPath, err := helper.AwsConfigPath()
 	if err != nil {
-		logrus.Infof("Cannot locate AWS config file, using default path: %s", configPath)
 		return nil, err
 	}
 
@@ -328,31 +324,4 @@ func retrieveProfile(profileName string) (*ini.Section, error) {
 
 	// Return the valid profile section.
 	return section, nil
-}
-
-// GetAwsConfigPath determines the file path of the AWS configuration file.
-//
-// It checks the following sources in order of priority:
-//  1. If the "AWS_CONFIG_FILE" environment variable is set, its value is returned.
-//  2. If the environment variable is not set, it retrieves the current user's home directory
-//     and constructs the default AWS configuration file path: `<HomeDirectory>/.aws/config`.
-//
-// Returns:
-// - The file path as a string if successful.
-// - An error if there is an issue retrieving the current user or resolving the path.
-func GetAwsConfigPath() (string, error) {
-	// Check if the AWS_CONFIG_FILE environment variable is set.
-	if configPath := os.Getenv("AWS_CONFIG_FILE"); configPath != "" {
-		return configPath, nil
-	}
-
-	// Retrieve the current user's home directory.
-	currentUser, err := user.Current()
-	if err != nil {
-		return "", fmt.Errorf("unable to retrieve current user: %w", err)
-	}
-
-	// Construct the default AWS configuration file path.
-	defaultConfigPath := filepath.Join(currentUser.HomeDir, ".aws", "config")
-	return defaultConfigPath, nil
 }
