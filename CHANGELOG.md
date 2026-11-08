@@ -20,6 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   of being returned by `export`, `import`, `process` and `console`. (#27)
 - A missing AWS CLI is now reported as `AWS CLI v2 is required but "aws" was
   not found in PATH` instead of advice to run `aws sso login`. (#29)
+- `import` and `console` now show the output of `aws sso login` (the
+  authorization URL and verification code) on stderr, so login works when no
+  browser opens automatically. (#25)
 - `import` and `console` no longer enter an infinite `aws sso login` retry loop
   when the configured SSO role is not assigned to the user. The CLI now detects
   `ForbiddenException` / `AccessDeniedException` from `GetRoleCredentials` and

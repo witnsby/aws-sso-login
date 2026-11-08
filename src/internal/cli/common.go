@@ -100,20 +100,21 @@ func (m *awsCredentialsManager) retrieveAndSetProfile() error {
 	return nil
 }
 
-// performSSOLogin runs the AWS CLI SSO login command for the specified profile and returns an error if the command fails.
+// performSSOLogin runs `aws sso login` for the profile. The AWS CLI prints
+// the authorization URL and verification code, so stdin is the terminal and
+// both output streams go to stderr: the user sees the instructions and
+// stdout stays clean.
 func (m *awsCredentialsManager) performSSOLogin() error {
 	cmd, err := awsCommand("sso", "login", "--profile", m.profileName)
 	if err != nil {
 		return err
 	}
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		if mapped := mapAWSExecError(err); errors.Is(mapped, errAWSCLINotFound) {
-			return mapped
-		}
-		return fmt.Errorf("failed to execute aws sso login: %v - %s", err, stderr.String())
+		return fmt.Errorf("aws sso login failed for profile %q: %w", m.profileName, mapAWSExecError(err))
 	}
 
 	return nil
@@ -180,7 +181,7 @@ func updateCachedRoleCredentials(profileName string, silent bool) error {
 		if isSSORoleNoAccessStderr(stderrStr) {
 			return fmt.Errorf("%w for profile %q", errSSORoleNoAccess, profileName)
 		}
-		return fmt.Errorf("please login with 'aws sso login --profile=%s'", profileName)
+		return fmt.Errorf("could not refresh credentials for profile %q; run 'aws sso login --profile %s'", profileName, profileName)
 	}
 	if !silent {
 		fmt.Printf("Updated credentials for: %s\n", string(output))

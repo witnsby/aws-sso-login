@@ -252,8 +252,9 @@ The project uses [Logrus](https://github.com/sirupsen/logrus).
 
 ## **Error handling**
 
-- **Recoverable errors** (for example, an expired SSO token): `import` and `console` run `aws sso login` once and retry credential retrieval. If the login itself fails, the error is reported and the command exits. `export` and `process` do not start a login.
+- **Recoverable errors** (for example, an expired SSO token): `import` and `console` run `aws sso login` once and retry credential retrieval. The AWS CLI's instructions (authorization URL and code) are shown on stderr, so you can finish the login in any browser when none opens automatically. If the login itself fails, the error is reported and the command exits. `export` and `process` do not start a login.
 - **Unrecoverable errors** (the SSO role is not assigned to your user; AWS returns `ForbiddenException` / `AccessDeniedException` from `GetRoleCredentials`): the CLI does **not** attempt `aws sso login`. It exits immediately with a single line saying the role is unavailable and asking you to contact your AWS administrator.
+- **Missing AWS CLI**: if `aws` is not in `PATH`, commands fail with `AWS CLI v2 is required but "aws" was not found in PATH`.
 - All commands exit with status `1` on failure.
 
 ---

@@ -36,9 +36,9 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 6. Visible `aws sso login` output
 
-- [ ] 6.1 Run `aws sso login` with stdin from the terminal and stdout and stderr on `os.Stderr`. Verify with a test that the fake runner receives `os.Stdin`, `os.Stderr` and `os.Stderr`, and that stdout stays empty.
-- [ ] 6.2 Test the retry flow: expired → login once → success. Login fails → single error, no second login. Role not assigned → no login. Verify with fake runner scripts covering each specs/credential-retrieval login scenario.
-- [ ] 6.3 Add a CHANGELOG `Fixed` entry. Commit `fix: show aws sso login instructions on stderr` with `Closes #25`.
+- [x] 6.1 Run `aws sso login` with stdin from the terminal and stdout and stderr on `os.Stderr`. Verify with a test that the fake runner receives `os.Stdin`, `os.Stderr` and `os.Stderr`, and that stdout stays empty.
+- [x] 6.2 Test the retry flow: expired → login once → success. Login fails → single error, no second login. Role not assigned → no login. Verify with fake runner scripts covering each specs/credential-retrieval login scenario.
+- [x] 6.3 Add a CHANGELOG `Fixed` entry. Commit `fix: show aws sso login instructions on stderr` with `Closes #25`.
 
 ## 7. Safe credentials file writes
 
