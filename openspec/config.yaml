@@ -36,12 +36,27 @@ context: |
   Dependencies: keep the dependency set small. A new third-party module requires a
   justification in design.md.
 
+  Workflow (applies to every OpenSpec step, from propose to archive):
+  - Validation: run `openspec validate <change-id> --strict` after creating or
+    editing any change artifact and before every commit; do not continue or commit
+    while it reports errors. Run `openspec validate --all --strict` before opening
+    a PR and before archiving.
+  - Commits: commit after each logical change (one artifact set, one task group,
+    one fix), not one commit for the whole change. Use Conventional Commits
+    (feat:, fix:, docs:, test:, refactor:, chore:) and never commit a red build.
+  - GitHub issues (repo witnsby/aws-sso-login): before proposing, search for
+    related issues with `gh issue list --state all --search "<keywords>"`.
+    Reference them in every commit that addresses them (`Refs #N` for partial
+    work, `Closes #N` in the commit that completes the issue) and in the PR
+    description (`Closes #N` for each fully resolved issue, `Refs #N` for each
+    partially addressed one) so GitHub closes them on merge.
+
 rules:
   proposal:
     - "State the user-visible impact on each affected command (console, export, import, process)."
     - "Mark any change to flags, defaults, stdout format or exit codes as **BREAKING**."
     - "List what is explicitly out of scope."
-    - "Link the related GitHub issue when one exists."
+    - "Add a 'Related issues' section listing every related GitHub issue as #N, marked Closes (fully resolved by this change) or Refs (partially addressed); write 'None found' with the search terms used when there are none."
   specs:
     - "Write scenarios for both the explicit --profile path and the interactive picker when profile selection is involved."
     - "Cover failure scenarios: expired SSO token, role not assigned to the user, missing AWS CLI, missing or invalid profile."
@@ -54,7 +69,9 @@ rules:
   tasks:
     - "Pair every behavior change with a unit test task."
     - "Include a README.md and CHANGELOG.md (Unreleased section) update task for user-visible changes."
-    - "End with a verification task: make tests, go vet ./..., gofmt -l ./src returns nothing."
+    - "Make each top-level task group one logical change that ends with its own commit step, naming the Conventional Commit message and the Refs/Closes #N issue references it carries."
+    - "End with a verification task: make tests, go vet ./..., gofmt -l ./src returns nothing, openspec validate <change-id> --strict passes."
+    - "Add a final PR task: the PR description links the change id and lists Closes #N for every resolved issue and Refs #N for every partially addressed one."
 
 operations:
   apply:
@@ -62,6 +79,12 @@ operations:
       - "Do not run `aws sso login`, other AWS CLI commands or AWS API calls while implementing or testing."
       - "Wrap errors with fmt.Errorf(\"...: %w\", err); either log an error or return it, not both."
       - "Keep diffs minimal and do not reformat unrelated files."
+      - "Commit after each completed task group: tick its checkboxes in tasks.md, run make tests, go vet ./... and gofmt -l ./src, then commit code, tests and tasks.md together. Never batch the whole change into one commit."
+      - "Run openspec validate <change-id> --strict before every commit and after any edit to proposal, specs, design or tasks; fix every finding first."
+      - "Carry the issue references from proposal.md: Refs #N in commits that partially address an issue, Closes #N in the commit that completes it."
+      - "When opening the PR, list Closes #N for every issue the change resolves and Refs #N for partially addressed ones in the description, and run openspec validate --all --strict first."
   archive:
     guidance:
       - "Confirm CHANGELOG.md and README.md reflect the archived behavior before archiving."
+      - "Run openspec validate <change-id> --strict before archiving and openspec validate --all --strict after; commit the archive as its own commit."
+      - "Check that every issue listed as Closes in proposal.md is referenced with a closing keyword in the PR; report any related issue that stays open instead of closing it by hand."
