@@ -2,7 +2,7 @@ package helper
 
 import "time"
 
-const ErrorPofileSpecification = "must specify --profile"
+const ErrorProfileSpecification = "must specify --profile"
 const SessionDuration = "43200" //12 hours
 const (
 	ISO8601WithOffset    = "2006-01-02T15:04:05-0700"

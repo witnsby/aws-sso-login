@@ -45,8 +45,7 @@ func TestHandleLogout(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := installRecordBrowser(t)
-			m := awsCredentialsManager{region: "us-east-1"}
-			m.handleLogout(tc.forceLogout, tc.logoutWait)
+			consoleSignin{region: "us-east-1"}.handleLogout(tc.forceLogout, tc.logoutWait)
 			assert.Equal(t, tc.want, rec.events)
 		})
 	}
@@ -151,8 +150,8 @@ func TestConsoleRegionAndSigninURL(t *testing.T) {
 			region := consoleRegion(tc.profile)
 			assert.Equal(t, tc.want, region)
 
-			m := awsCredentialsManager{region: region, account: "123456789012", signinToken: "TOKEN"}
-			u, err := url.Parse(m.generateSigninURL())
+			s := consoleSignin{region: region, account: "123456789012", signinToken: "TOKEN"}
+			u, err := url.Parse(s.signinURL())
 			require.NoError(t, err)
 			assert.Equal(t, "123456789012.signin.aws.amazon.com", u.Host)
 			q := u.Query()

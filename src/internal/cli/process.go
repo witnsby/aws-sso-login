@@ -10,12 +10,7 @@ import (
 // processCreds prints credential_process compatible JSON for a profile.
 // stdout carries only the JSON document.
 func processCreds(profileName string) error {
-	profile, err := resolveProfile(profileName)
-	if err != nil {
-		return err
-	}
-
-	roleCred, err := getRoleCredentials(profileName, profile)
+	_, roleCred, err := retrieveCredentials(profileName, false)
 	if err != nil {
 		return err
 	}

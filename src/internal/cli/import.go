@@ -1,119 +1,27 @@
 package cli
 
 import (
-	"errors"
-	"fmt"
-	"os"
-
-	"github.com/go-ini/ini"
 	"github.com/sirupsen/logrus"
 	"github.com/witnsby/aws-sso-login/src/internal/helper"
-	"github.com/witnsby/aws-sso-login/src/internal/profiles"
 )
 
-// defaultSelector is the production Selector used when --profile is omitted.
-// It is a package-level seam so tests can swap in a deterministic fake.
-var defaultSelector Selector = HuhSelector{}
-
-// resolveProfileName returns the AWS profile name a command works on, in
-// order of precedence: a non-empty --profile flag, a non-empty $AWS_PROFILE,
-// then the interactive picker. The picker is used only when allowPicker is
-// true and both stdin and stderr are terminals; otherwise a missing profile
-// is an error asking for --profile.
-func resolveProfileName(flagValue string, allowPicker bool) (string, error) {
-	if flagValue != "" {
-		return flagValue, nil
-	}
-	if env := os.Getenv("AWS_PROFILE"); env != "" {
-		return env, nil
-	}
-	if !allowPicker || !isInteractive() {
-		return "", errors.New(helper.ErrorPofileSpecification)
-	}
-
-	configPath, err := helper.AwsConfigPath()
-	if err != nil {
-		return "", fmt.Errorf("could not determine AWS config path: %w", err)
-	}
-
-	ssoProfiles, err := profiles.ListSSOProfiles(configPath)
-	if err != nil {
-		return "", fmt.Errorf("could not list SSO profiles: %w", err)
-	}
-
-	name, err := defaultSelector.Pick(ssoProfiles)
-	if err != nil {
-		return "", fmt.Errorf("could not select profile: %w", err)
-	}
-	return name, nil
-}
-
-// importCreds retrieves AWS credentials for a profile,
-// writes them in the credentials file, and saves the updated file.
+// importCreds retrieves credentials for a profile (logging in once if the SSO
+// session has expired) and writes them to the shared credentials file under
+// a section named after the profile.
 func importCreds(profileName string) error {
-	// Initialize the credentials manager
-	manager := awsCredentialsManager{profileName: profileName}
-
-	// Retrieve AWS profile and credentials
-	if err := manager.retrieveAndSetProfile(); err != nil {
+	_, roleCred, err := retrieveCredentials(profileName, true)
+	if err != nil {
 		return err
 	}
 
-	// Load or initialize the credentials file
-	if err := manager.loadOrInitCredsFile(); err != nil {
-		return err
-	}
-
-	// Update the credentials in the profile section
-	if err := manager.updateProfileWithCreds(); err != nil {
-		return err
-	}
-
-	// Save the credentials file
-	if err := manager.saveCredsFile(); err != nil {
-		return err
-	}
-
-	logrus.Infof("Wrote credentials to profile [%s] in %s", manager.profileName, manager.credentialsPath)
-	return nil
-}
-
-// loadOrInitCredsFile loads the credentials file or initializes an empty one if it doesn't exist.
-func (m *awsCredentialsManager) loadOrInitCredsFile() error {
 	path, err := helper.AwsCredentialsPath()
 	if err != nil {
 		return err
 	}
-	m.credentialsPath = path
-
-	credsFile, err := ini.Load(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			m.credsFile = ini.Empty()
-			return nil
-		}
+	if err := updateCredentialsFile(path, profileName, roleCred); err != nil {
 		return err
 	}
-	m.credsFile = credsFile
+
+	logrus.Infof("Wrote credentials to profile [%s] in %s", profileName, path)
 	return nil
-}
-
-// updateProfileWithCreds updates (or creates) the profile section with role credentials.
-func (m *awsCredentialsManager) updateProfileWithCreds() error {
-	section, err := m.credsFile.GetSection(m.profileName)
-	if err != nil {
-		section, _ = m.credsFile.NewSection(m.profileName)
-	}
-
-	section.Key("aws_access_key_id").SetValue(m.roleCred.AccessKeyId)
-	section.Key("aws_secret_access_key").SetValue(m.roleCred.SecretAccessKey)
-	section.Key("aws_session_token").SetValue(m.roleCred.SessionToken)
-	section.Key("aws_security_token").SetValue(m.roleCred.SessionToken)
-
-	return nil
-}
-
-// saveCredsFile atomically writes the updated credentials file with mode 0600.
-func (m *awsCredentialsManager) saveCredsFile() error {
-	return writeCredentialsFile(m.credentialsPath, m.credsFile)
 }

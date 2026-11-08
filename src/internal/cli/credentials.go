@@ -7,19 +7,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-ini/ini"
-	"github.com/sirupsen/logrus"
-	"github.com/witnsby/aws-sso-login/src/internal/helper"
-	"github.com/witnsby/aws-sso-login/src/internal/model"
-	"github.com/witnsby/aws-sso-login/src/internal/profiles"
-	"io"
-	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/witnsby/aws-sso-login/src/internal/helper"
+	"github.com/witnsby/aws-sso-login/src/internal/model"
+	"github.com/witnsby/aws-sso-login/src/internal/profiles"
 )
 
 // errSSORoleNoAccess indicates that the AWS SSO identity is authenticated but
@@ -50,62 +47,43 @@ func mapAWSExecError(err error) error {
 	return err
 }
 
-// importCreds retrieves AWS credentials for the specified profile,
-// writes them to the AWS credentials file under that profile section,
-// and ensures the credentials are saved properly.
-type awsCredentialsManager struct {
-	profileName     string
-	credentialsPath string
-	credsFile       *ini.File
-	roleCred        *model.RoleCredential
-	profile         profiles.Profile
-	region          string
-	account         string
-	signinToken     string
-}
-
-// retrieveAndSetProfile retrieves an AWS profile, fetches role credentials, and sets them for the credentials manager.
-// On a recoverable failure (e.g. expired SSO token) it performs a single
-// `aws sso login` attempt and retries credential retrieval once. On an
-// unrecoverable failure (the SSO role is not assigned to the user, surfaced
-// as errSSORoleNoAccess) it returns immediately without invoking the login
-// flow, to avoid an infinite re-prompt loop.
-func (m *awsCredentialsManager) retrieveAndSetProfile() error {
-	profile, err := resolveProfile(m.profileName)
+// retrieveCredentials resolves profileName and returns its role credentials.
+// With allowLogin (import, console), a recoverable failure such as an
+// expired SSO token triggers a single `aws sso login` and one retry. A role
+// without access or a missing AWS CLI fails immediately, since logging in
+// cannot fix either.
+func retrieveCredentials(profileName string, allowLogin bool) (profiles.Profile, *model.RoleCredential, error) {
+	profile, err := resolveProfile(profileName)
 	if err != nil {
-		return err
+		return profiles.Profile{}, nil, err
 	}
-	m.profile = profile
 
-	roleCred, err := getRoleCredentials(m.profileName, m.profile)
+	roleCred, err := getRoleCredentials(profileName, profile)
 	if err == nil {
-		m.roleCred = roleCred
-		return nil
+		return profile, roleCred, nil
+	}
+	if !allowLogin || errors.Is(err, errSSORoleNoAccess) || errors.Is(err, errAWSCLINotFound) {
+		return profiles.Profile{}, nil, err
 	}
 
-	if errors.Is(err, errSSORoleNoAccess) || errors.Is(err, errAWSCLINotFound) {
-		return err
+	logrus.Infof("Credentials for profile [%s] not available, attempting `aws sso login`...", profileName)
+	if err := ssoLogin(profileName); err != nil {
+		return profiles.Profile{}, nil, err
 	}
 
-	logrus.Infof("Credentials for profile [%s] not available, attempting `aws sso login`...", m.profileName)
-	if loginErr := m.performSSOLogin(); loginErr != nil {
-		return loginErr
-	}
-
-	roleCred, err = getRoleCredentials(m.profileName, m.profile)
+	roleCred, err = getRoleCredentials(profileName, profile)
 	if err != nil {
-		return err
+		return profiles.Profile{}, nil, err
 	}
-	m.roleCred = roleCred
-	return nil
+	return profile, roleCred, nil
 }
 
-// performSSOLogin runs `aws sso login` for the profile. The AWS CLI prints
-// the authorization URL and verification code, so stdin is the terminal and
-// both output streams go to stderr: the user sees the instructions and
-// stdout stays clean.
-func (m *awsCredentialsManager) performSSOLogin() error {
-	cmd, err := awsCommand("sso", "login", "--profile", m.profileName)
+// ssoLogin runs `aws sso login` for the profile. The AWS CLI prints the
+// authorization URL and verification code, so stdin is the terminal and both
+// output streams go to stderr: the user sees the instructions and stdout
+// stays clean.
+func ssoLogin(profileName string) error {
+	cmd, err := awsCommand("sso", "login", "--profile", profileName)
 	if err != nil {
 		return err
 	}
@@ -114,9 +92,8 @@ func (m *awsCredentialsManager) performSSOLogin() error {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("aws sso login failed for profile %q: %w", m.profileName, mapAWSExecError(err))
+		return fmt.Errorf("aws sso login failed for profile %q: %w", profileName, mapAWSExecError(err))
 	}
-
 	return nil
 }
 
@@ -288,69 +265,4 @@ func parseExpirationTime(expirationTime string) (time.Time, error) {
 	}
 	// Return zero time if parsing fails
 	return time.Time{}, fmt.Errorf("unable to parse expiration time")
-}
-
-// maxFederationResponse caps how much of the federation response is read.
-const maxFederationResponse = 1 << 20
-
-// getSigninToken obtains a federation sign-in token for the role credentials.
-// The request URL carries the credentials, so no error returned from here
-// contains the URL or the response body.
-func getSigninToken(rc *model.RoleCredential) (string, error) {
-	params := url.Values{}
-	params.Set("Action", "getSigninToken")
-	params.Set("SessionDuration", helper.SessionDuration)
-	sess := map[string]string{
-		"sessionId":    rc.AccessKeyId,
-		"sessionKey":   rc.SecretAccessKey,
-		"sessionToken": rc.SessionToken,
-	}
-	sessB, err := json.Marshal(sess)
-	if err != nil {
-		return "", fmt.Errorf("encoding federation session: %w", err)
-	}
-	params.Set("Session", string(sessB))
-
-	req, err := http.NewRequest(http.MethodGet, federationEndpoint+"?"+params.Encode(), nil)
-	if err != nil {
-		return "", errors.New("building federation request failed")
-	}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		var uerr *url.Error
-		if errors.As(err, &uerr) {
-			err = uerr.Err
-		}
-		return "", fmt.Errorf("federation request failed: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("federation endpoint returned status %d", resp.StatusCode)
-	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxFederationResponse))
-	if err != nil {
-		return "", fmt.Errorf("reading federation response: %w", err)
-	}
-
-	var out struct {
-		SigninToken string `json:"SigninToken"`
-	}
-	if err := json.Unmarshal(body, &out); err != nil {
-		return "", errors.New("federation endpoint returned an invalid response")
-	}
-	if out.SigninToken == "" {
-		return "", errors.New("federation endpoint returned no sign-in token")
-	}
-	return out.SigninToken, nil
-}
-
-// resolveProfile loads the named profile from the AWS config file and
-// validates its SSO configuration (legacy or sso-session).
-func resolveProfile(profileName string) (profiles.Profile, error) {
-	configPath, err := helper.AwsConfigPath()
-	if err != nil {
-		return profiles.Profile{}, err
-	}
-	return profiles.Resolve(configPath, profileName)
 }

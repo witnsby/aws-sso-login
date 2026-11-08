@@ -43,9 +43,9 @@ func TestLoginRetryFlow(t *testing.T) {
 		ok := fakeResult{Stdout: "arn", Before: func() { writeCachedCreds(t, p, time.Now().Add(time.Hour)) }}
 		runner := loginScript(t, []fakeResult{expired, ok}, 0)
 
-		m := awsCredentialsManager{profileName: "dev"}
-		require.NoError(t, m.retrieveAndSetProfile())
-		assert.Equal(t, fakeAccessKey, m.roleCred.AccessKeyId)
+		_, rc, err := retrieveCredentials("dev", true)
+		require.NoError(t, err)
+		assert.Equal(t, fakeAccessKey, rc.AccessKeyId)
 
 		logins := runner.CallsMatching("aws sso login")
 		require.Len(t, logins, 1)
@@ -60,8 +60,7 @@ func TestLoginRetryFlow(t *testing.T) {
 		setupAWSEnv(t, legacyConfig)
 		runner := loginScript(t, []fakeResult{expired}, 1)
 
-		m := awsCredentialsManager{profileName: "dev"}
-		err := m.retrieveAndSetProfile()
+		_, _, err := retrieveCredentials("dev", true)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), `aws sso login failed for profile "dev"`)
 		assert.Len(t, runner.CallsMatching("aws sso login"), 1)
@@ -71,8 +70,7 @@ func TestLoginRetryFlow(t *testing.T) {
 		setupAWSEnv(t, legacyConfig)
 		runner := loginScript(t, []fakeResult{expired, expired}, 0)
 
-		m := awsCredentialsManager{profileName: "dev"}
-		err := m.retrieveAndSetProfile()
+		_, _, err := retrieveCredentials("dev", true)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "aws sso login --profile dev")
 		assert.Len(t, runner.CallsMatching("aws sso login"), 1)
@@ -86,8 +84,7 @@ func TestLoginRetryFlow(t *testing.T) {
 		}
 		runner := loginScript(t, []fakeResult{noAccess}, 0)
 
-		m := awsCredentialsManager{profileName: "dev"}
-		err := m.retrieveAndSetProfile()
+		_, _, err := retrieveCredentials("dev", true)
 		require.ErrorIs(t, err, errSSORoleNoAccess)
 		assert.Empty(t, runner.CallsMatching("aws sso login"))
 	})

@@ -83,7 +83,7 @@ func TestProfileFlagPrecedence(t *testing.T) {
 					return
 				}
 				require.Error(t, err)
-				assert.Equal(t, helper.ErrorPofileSpecification, err.Error())
+				assert.Equal(t, helper.ErrorProfileSpecification, err.Error())
 				assert.Zero(t, rec.calls, "process never prompts")
 			})
 
@@ -95,7 +95,7 @@ func TestProfileFlagPrecedence(t *testing.T) {
 
 				_, err := runResolved(t, c.name)
 				require.Error(t, err)
-				assert.Equal(t, helper.ErrorPofileSpecification, err.Error())
+				assert.Equal(t, helper.ErrorProfileSpecification, err.Error())
 				assert.Zero(t, rec.calls)
 			})
 

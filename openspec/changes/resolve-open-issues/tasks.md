@@ -69,10 +69,10 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 11. Code-quality cleanups
 
-- [ ] 11.1 Fix the doc comments on the former `awsCredentialsManager` and on `versionCmd`, rename `ErrorPofileSpecification` to `ErrorProfileSpecification`, handle errors from `cmd.Flags().Get*`, and remove the `silent` parameter. Verify that `go vet ./...` is clean and tests pass.
-- [ ] 11.2 Remove the trailing newline from `getVersion`. Verify with a test that `version` prints exactly one line.
-- [ ] 11.3 Split `common.go` into `credentials.go`, `credsfile.go` and `console.go` (design.md §12) and delete `common.go`. Verify that `go build ./...` succeeds and all tests pass unchanged.
-- [ ] 11.4 Update AGENTS.md (helper names, file layout). Commit `refactor: code-quality cleanups and split credentials manager` with `Closes #35`.
+- [x] 11.1 Fix the doc comments on the former `awsCredentialsManager` and on `versionCmd`, rename `ErrorPofileSpecification` to `ErrorProfileSpecification`, handle errors from `cmd.Flags().Get*`, and remove the `silent` parameter. Verify that `go vet ./...` is clean and tests pass.
+- [x] 11.2 Remove the trailing newline from `getVersion`. Verify with a test that `version` prints exactly one line.
+- [x] 11.3 Split `common.go` into `credentials.go`, `credsfile.go` and `console.go` (design.md §12) and delete `common.go`. Verify that `go build ./...` succeeds and all tests pass unchanged.
+- [x] 11.4 Update AGENTS.md (helper names, file layout). Commit `refactor: code-quality cleanups and split credentials manager` with `Closes #35`.
 
 ## 12. Test coverage
 

@@ -169,3 +169,11 @@ func TestDebugShowsAWSCLIStderr(t *testing.T) {
 	assert.Contains(t, logs.String(), "Token has expired and refresh failed")
 	assert.Empty(t, out.String())
 }
+
+// TestVersionOutput covers specs/cli-output "version output".
+func TestVersionOutput(t *testing.T) {
+	out := captureStdout(t)
+	require.NoError(t, execute(t, "version"))
+	assert.Equal(t, "Version: dev, Commit: local\n", out.String())
+	assert.Len(t, nonEmptyLines(out.String()), 1)
+}

@@ -8,7 +8,52 @@ import (
 	"path/filepath"
 
 	"github.com/go-ini/ini"
+	"github.com/witnsby/aws-sso-login/src/internal/model"
 )
+
+// updateCredentialsFile stores roleCred in the [profileName] section of the
+// shared credentials file at path, keeping every other section, and writes
+// the file atomically with mode 0600.
+func updateCredentialsFile(path, profileName string, roleCred *model.RoleCredential) error {
+	file, err := loadCredentialsFile(path)
+	if err != nil {
+		return err
+	}
+	if err := setProfileCredentials(file, profileName, roleCred); err != nil {
+		return err
+	}
+	return writeCredentialsFile(path, file)
+}
+
+// loadCredentialsFile loads the credentials file, or returns an empty file
+// when it does not exist yet.
+func loadCredentialsFile(path string) (*ini.File, error) {
+	file, err := ini.Load(path)
+	if err == nil {
+		return file, nil
+	}
+	if errors.Is(err, fs.ErrNotExist) {
+		return ini.Empty(), nil
+	}
+	return nil, fmt.Errorf("loading credentials file %s: %w", path, err)
+}
+
+// setProfileCredentials updates (or creates) the profile section with the
+// role credentials.
+func setProfileCredentials(file *ini.File, profileName string, roleCred *model.RoleCredential) error {
+	section, err := file.GetSection(profileName)
+	if err != nil {
+		section, err = file.NewSection(profileName)
+		if err != nil {
+			return fmt.Errorf("creating section [%s] in credentials file: %w", profileName, err)
+		}
+	}
+	section.Key("aws_access_key_id").SetValue(roleCred.AccessKeyId)
+	section.Key("aws_secret_access_key").SetValue(roleCred.SecretAccessKey)
+	section.Key("aws_session_token").SetValue(roleCred.SessionToken)
+	section.Key("aws_security_token").SetValue(roleCred.SessionToken)
+	return nil
+}
 
 // writeCredentialsFile atomically replaces the credentials file at path with
 // the content of file. The new content is written to a temp file in the
