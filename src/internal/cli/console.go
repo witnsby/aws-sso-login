@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/witnsby/aws-sso-login/src/internal/helper"
+	"github.com/witnsby/aws-sso-login/src/internal/profiles"
 	"net/url"
 	"time"
 )
@@ -23,7 +24,7 @@ func console(profile string, forceLogout bool, logoutWait int) error {
 	}
 	manager.signinToken = signinToken
 
-	manager.region = manager.profile.SSORegion
+	manager.region = consoleRegion(manager.profile)
 	manager.account = manager.profile.AccountID
 	if err = manager.validateProfileParams(); err != nil {
 		logrus.Error(err)
@@ -34,7 +35,7 @@ func console(profile string, forceLogout bool, logoutWait int) error {
 	// Handle optional logout
 	manager.handleLogout(forceLogout, logoutWait)
 	// Open the new session in a browser
-	openBrowser(signinURL)
+	openURL(signinURL)
 	return nil
 }
 
@@ -48,15 +49,25 @@ func (m *awsCredentialsManager) generateSigninURL() string {
 	return fmt.Sprintf("https://%s.signin.aws.amazon.com/federation?%s", m.account, params.Encode())
 }
 
-// handleLogout optionally logs out of the existing session.
+// handleLogout opens the console logout page when forceLogout is true and
+// then waits logoutWait seconds. logoutWait alone never triggers a logout.
 func (m *awsCredentialsManager) handleLogout(forceLogout bool, logoutWait int) {
-	if forceLogout || logoutWait > 0 {
-		logoutURL := helper.ConsoleLogout(m.region)
-		openBrowser(logoutURL)
-		if logoutWait > 0 {
-			time.Sleep(time.Duration(logoutWait) * time.Second)
-		}
+	if !forceLogout {
+		return
 	}
+	openURL(helper.ConsoleLogout(m.region))
+	if logoutWait > 0 {
+		sleep(time.Duration(logoutWait) * time.Second)
+	}
+}
+
+// consoleRegion returns the region the console opens in: the profile's
+// region when set, otherwise its sso_region.
+func consoleRegion(p profiles.Profile) string {
+	if p.Region != "" {
+		return p.Region
+	}
+	return p.SSORegion
 }
 
 // validateProfileParams checks required profile parameters.

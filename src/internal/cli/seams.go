@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -30,4 +31,10 @@ var (
 	}
 	// goos is the operating system the binary runs on.
 	goos = runtime.GOOS
+	// stderrOut receives user-facing messages that are not logs.
+	stderrOut io.Writer = os.Stderr
+	// openURL opens a URL in the user's browser.
+	openURL = openBrowser
+	// sleep pauses between the console logout and sign-in pages.
+	sleep = time.Sleep
 )

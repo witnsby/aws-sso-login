@@ -23,6 +23,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `import` and `console` now show the output of `aws sso login` (the
   authorization URL and verification code) on stderr, so login works when no
   browser opens automatically. (#25)
+- `console --force-logout=false` no longer opens the logout page;
+  `--logout-wait` is only the delay after a logout. (#24)
+- The federation sign-in request used by `console` now times out, reports
+  non-200 responses and empty tokens clearly, and never includes the request
+  URL (which carries credentials) in errors. (#28)
+- `console` picks the browser launcher by OS (`open` on macOS, `xdg-open` on
+  Linux) and prints the URL to stderr when none is available, instead of
+  trying `open` on Linux. (#30)
+
+### Changed
+
+- `console` opens the console in the profile's `region` when it is set,
+  falling back to `sso_region`. (#35)
 - `import` and `console` no longer enter an infinite `aws sso login` retry loop
   when the configured SSO role is not assigned to the user. The CLI now detects
   `ForbiddenException` / `AccessDeniedException` from `GetRoleCredentials` and

@@ -90,10 +90,10 @@ aws-sso-login console --profile <profile-name> [flags]
 
 #### Flags:
 - `--profile` (required): Name of the AWS SSO profile.
-- `--force-logout` (optional, default `true`): Open the console logout page before logging in, so an existing console session does not block the new one.
-- `--logout-wait` (optional, default `1`): Seconds to wait after the logout page before opening the sign-in page.
+- `--force-logout` (optional, default `true`): Open the console logout page before logging in, so an existing console session does not block the new one. Pass `--force-logout=false` to skip it.
+- `--logout-wait` (optional, default `1`): Seconds to wait after the logout page before opening the sign-in page. Only used when `--force-logout` is on.
 
-The console opens in the profile's `sso_region`.
+The console opens in the profile's `region` when it is set, otherwise in its `sso_region`. URLs are opened with `open` on macOS and `xdg-open` on Linux; if neither is available (for example on a headless server), the sign-in URL is printed to stderr so you can open it yourself. The federation sign-in request times out after 15 seconds.
 
 #### Example:
 ```bash

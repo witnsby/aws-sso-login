@@ -13,6 +13,7 @@ import (
 	"github.com/witnsby/aws-sso-login/src/internal/model"
 	"github.com/witnsby/aws-sso-login/src/internal/profiles"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -293,7 +294,12 @@ func parseExpirationTime(expirationTime string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("unable to parse expiration time")
 }
 
-// getSigninToken obtains a federation sign-in token from AWS Federation endpoint
+// maxFederationResponse caps how much of the federation response is read.
+const maxFederationResponse = 1 << 20
+
+// getSigninToken obtains a federation sign-in token for the role credentials.
+// The request URL carries the credentials, so no error returned from here
+// contains the URL or the response body.
 func getSigninToken(rc *model.RoleCredential) (string, error) {
 	params := url.Values{}
 	params.Set("Action", "getSigninToken")
@@ -303,46 +309,44 @@ func getSigninToken(rc *model.RoleCredential) (string, error) {
 		"sessionKey":   rc.SecretAccessKey,
 		"sessionToken": rc.SessionToken,
 	}
-	sessB, _ := json.Marshal(sess)
+	sessB, err := json.Marshal(sess)
+	if err != nil {
+		return "", fmt.Errorf("encoding federation session: %w", err)
+	}
 	params.Set("Session", string(sessB))
 
-	fedURL := federationEndpoint + "?" + params.Encode()
-
-	out, err := getURL(fedURL)
+	req, err := http.NewRequest(http.MethodGet, federationEndpoint+"?"+params.Encode(), nil)
 	if err != nil {
-		return "", err
+		return "", errors.New("building federation request failed")
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		var uerr *url.Error
+		if errors.As(err, &uerr) {
+			err = uerr.Err
+		}
+		return "", fmt.Errorf("federation request failed: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("federation endpoint returned status %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxFederationResponse))
+	if err != nil {
+		return "", fmt.Errorf("reading federation response: %w", err)
 	}
 
-	var resp struct {
+	var out struct {
 		SigninToken string `json:"SigninToken"`
 	}
-	if err := json.Unmarshal(out, &resp); err != nil {
-		return "", err
+	if err := json.Unmarshal(body, &out); err != nil {
+		return "", errors.New("federation endpoint returned an invalid response")
 	}
-	return resp.SigninToken, nil
-}
-
-func getURL(raw string) ([]byte, error) {
-	// Perform an HTTP GET request
-	resp, err := httpClient.Get(raw)
-	if err != nil {
-		return nil, err
+	if out.SigninToken == "" {
+		return "", errors.New("federation endpoint returned no sign-in token")
 	}
-	// Ensure the response body is closed
-	defer func(Body io.ReadCloser) {
-		err = Body.Close()
-		if err != nil {
-
-		}
-	}(resp.Body)
-
-	// Read the body of the response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
+	return out.SigninToken, nil
 }
 
 // resolveProfile loads the named profile from the AWS config file and

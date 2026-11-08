@@ -48,11 +48,11 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 8. Console sign-in fixes
 
-- [ ] 8.1 Make logout happen only when `--force-logout` is true, with `--logout-wait` used only as the delay. Verify with a `handleLogout` test using a fake browser opener and a fake sleep for all three spec scenarios.
-- [ ] 8.2 Harden the federation request: `httpClient` timeout, status check, `LimitReader`, empty-token check, and errors without the URL. Verify with `httptest.Server` tests for 200 with a token, 400 with HTML, 200 with an empty token, and a hanging handler with a short client timeout. Each asserts the error text contains no URL or credential values.
-- [ ] 8.3 Choose the browser command by `goos`, with a stderr fallback when `lookPath` or `Start` fails, and release started processes. Verify with an updated `browser_test.go` covering linux with and without `xdg-open` and darwin with `open`. `open` is never tried on linux.
-- [ ] 8.4 Use the profile `region` with fallback to `sso_region` for the console destination and logout pages. Verify with a sign-in URL test for both cases.
-- [ ] 8.5 Update README console section and add CHANGELOG `Fixed` and `Changed` entries. Commit `fix: honor --force-logout=false, harden federation request, pick browser by OS` with `Closes #24`, `Closes #28`, `Closes #30` and `Refs #35`.
+- [x] 8.1 Make logout happen only when `--force-logout` is true, with `--logout-wait` used only as the delay. Verify with a `handleLogout` test using a fake browser opener and a fake sleep for all three spec scenarios.
+- [x] 8.2 Harden the federation request: `httpClient` timeout, status check, `LimitReader`, empty-token check, and errors without the URL. Verify with `httptest.Server` tests for 200 with a token, 400 with HTML, 200 with an empty token, and a hanging handler with a short client timeout. Each asserts the error text contains no URL or credential values.
+- [x] 8.3 Choose the browser command by `goos`, with a stderr fallback when `lookPath` or `Start` fails, and release started processes. Verify with an updated `browser_test.go` covering linux with and without `xdg-open` and darwin with `open`. `open` is never tried on linux.
+- [x] 8.4 Use the profile `region` with fallback to `sso_region` for the console destination and logout pages. Verify with a sign-in URL test for both cases.
+- [x] 8.5 Update README console section and add CHANGELOG `Fixed` and `Changed` entries. Commit `fix: honor --force-logout=false, harden federation request, pick browser by OS` with `Closes #24`, `Closes #28`, `Closes #30` and `Refs #35`.
 
 ## 9. Consistent `--profile` handling
 
