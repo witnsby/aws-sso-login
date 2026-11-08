@@ -24,7 +24,14 @@ The tool does not talk to the AWS SSO APIs directly. It shells out to AWS CLI v2
 ├── src/
 │   ├── cmd/bin/main.go          # Binary entrypoint, calls cli.Run()
 │   └── internal/
-│       ├── cli/                 # Cobra commands and command logic (console, export, import, process, version)
+│       ├── cli/                 # Cobra commands and command logic
+│       │   ├── cli.go           #   command tree, persistent flags, logging, error reporting
+│       │   ├── profile.go       #   profile name precedence (flag, AWS_PROFILE, picker)
+│       │   ├── credentials.go   #   AWS CLI cache, expiry, refresh and `aws sso login`
+│       │   ├── credsfile.go     #   atomic writes to the shared credentials file
+│       │   ├── console.go       #   federation sign-in, logout, console URL
+│       │   ├── browser.go       #   per-OS browser launcher
+│       │   └── seams.go         #   package-level seams for tests
 │       ├── profiles/            # Listing SSO-enabled profiles from ~/.aws/config
 │       ├── helper/              # Path helpers, constants, build-time version variables
 │       └── model/               # Shared data types (RoleCredential)
@@ -58,12 +65,12 @@ The build output goes to `./tmp/`. Cross-compile targets cover `darwin/amd64`, `
 ## Coding conventions
 
 - **Formatting**: run `gofmt` (or `goimports`) before committing.
-- **Errors**: wrap with `fmt.Errorf("context: %w", err)`; never silently discard. Either log an error or return it, not both: `reportAndExit` in `src/internal/cli/cli.go` renders the final error once.
+- **Errors**: wrap with `fmt.Errorf("context: %w", err)`; never silently discard. Either log an error or return it, not both: `reportError` in `src/internal/cli/cli.go` renders the final error once.
 - **Logging**: use `logrus` with structured fields (`logrus.WithField(...)`), not `fmt.Println`, for diagnostics.
 - **Output contracts**: `export` stdout must stay `eval`-safe and `process` stdout must contain only the `credential_process` JSON. Anything else goes to stderr.
-- **CLI**: add new commands as Cobra subcommands in `src/internal/cli/` and register them in `Run()` in `src/internal/cli/cli.go`. Declare flags in that file's `init()`.
-- **Config**: list SSO profiles with `profiles.ListSSOProfiles`, load a single profile with `retrieveProfile`, and resolve the config path with `GetAwsConfigPath` (honors `AWS_CONFIG_FILE`). Do not re-parse `~/.aws/config` ad hoc.
-- **Testability**: external commands, the filesystem and interactive prompts go behind package-level seams (see `execCommand` and `defaultSelector`) so tests can swap in fakes.
+- **CLI**: add new commands as `newXxxCmd()` constructors in `src/internal/cli/` and register them in `newRootCmd()` in `src/internal/cli/cli.go`; declare command flags in the constructor. Commands that need a profile set the `profileAnnotation`, and the root resolves `--profile` for them.
+- **Config**: list SSO profiles with `profiles.ListSSOProfiles` and resolve a single profile with `profiles.Resolve` (wrapped by `resolveProfile` in `cli`); both handle `[default]` and sso-session profiles. Resolve paths with `helper.AwsConfigPath`, `helper.AwsCredentialsPath` and `helper.AwsCliCachePath` (they honor `AWS_CONFIG_FILE`, `AWS_SHARED_CREDENTIALS_FILE` and `$HOME`). Do not re-parse `~/.aws/config` ad hoc.
+- **Testability**: external commands, the filesystem and interactive prompts go behind package-level seams (see `src/internal/cli/seams.go` and `defaultSelector`) so tests can swap in fakes. The fake command runner in `testhelpers_test.go` scripts AWS CLI calls.
 - **Tests**: colocate `_test.go` files with the code; use `testify/assert` and `testify/require`. Cover new branches and error paths.
 
 ## Spec-driven changes (OpenSpec)

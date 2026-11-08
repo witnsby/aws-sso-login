@@ -54,7 +54,7 @@ func TestIsSSORoleNoAccessStderr(t *testing.T) {
 
 // TestErrSSORoleNoAccess_IsWrappable ensures the sentinel survives wrapping
 // with fmt.Errorf("...: %w", errSSORoleNoAccess), which is how
-// updateCachedRoleCredentials emits it. retrieveAndSetProfile relies on
+// updateCachedRoleCredentials emits it. retrieveCredentials relies on
 // errors.Is to short-circuit the login retry loop.
 func TestErrSSORoleNoAccess_IsWrappable(t *testing.T) {
 	wrapped := wrapNoAccess()

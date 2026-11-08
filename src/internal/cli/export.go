@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 )
 
 // exportCredsToOutput retrieves AWS credentials and region for a given profile
@@ -24,16 +25,11 @@ import (
 // Returns:
 // - An error if profile retrieval or credential generation fails.
 func exportCredsToOutput(profileName string) error {
-	profile, err := retrieveProfile(profileName)
+	profile, roleCred, err := retrieveCredentials(profileName, false)
 	if err != nil {
 		return err
 	}
-
-	awsRegion := profile.Key("region").String()
-	roleCred, err := getRoleCredentials(profileName, profile, true)
-	if err != nil {
-		return err
-	}
+	awsRegion := profile.Region
 
 	// Print in a shell-exportable format
 	printEnvVariable("AWS_ACCESS_KEY_ID", roleCred.AccessKeyId)
@@ -49,6 +45,26 @@ func exportCredsToOutput(profileName string) error {
 
 func printEnvVariable(name, value string) {
 	if value != "" {
-		fmt.Printf("export %s=%q\n", name, value)
+		fmt.Fprintf(stdout, "export %s=%s\n", name, shellQuote(value))
 	}
+}
+
+// shellQuote wraps value in double quotes for POSIX shells, escaping the
+// characters that keep a special meaning inside double quotes ($, `, " and
+// \), so `eval` assigns the value verbatim. Go's %q is not enough: it leaves
+// $ and ` unescaped and uses escapes such as \x00 that shells do not
+// understand.
+func shellQuote(value string) string {
+	var b strings.Builder
+	b.Grow(len(value) + 2)
+	b.WriteByte('"')
+	for _, r := range value {
+		switch r {
+		case '$', '`', '"', '\\':
+			b.WriteByte('\\')
+		}
+		b.WriteRune(r)
+	}
+	b.WriteByte('"')
+	return b.String()
 }

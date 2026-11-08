@@ -42,7 +42,7 @@ region = us-west-2
 	assert.Equal(t, "alpha-sso", profiles[0].Name)
 	assert.Equal(t, "123456789012", profiles[0].AccountID)
 	assert.Equal(t, "Admin", profiles[0].RoleName)
-	assert.Equal(t, "eu-west-1", profiles[0].Region)
+	assert.Equal(t, "eu-west-1", profiles[0].SSORegion)
 	assert.Equal(t, "https://example.awsapps.com/start", profiles[0].StartURL)
 
 	assert.Equal(t, "zebra-sso", profiles[1].Name)

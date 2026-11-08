@@ -1,68 +1,131 @@
 package cli
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/witnsby/aws-sso-login/src/internal/helper"
+	"io"
+	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/witnsby/aws-sso-login/src/internal/helper"
+	"github.com/witnsby/aws-sso-login/src/internal/model"
+	"github.com/witnsby/aws-sso-login/src/internal/profiles"
 )
 
-// console generates a sign-in URL for an AWS SSO console session and opens it in a browser.
-// It optionally logs out of an existing session before opening the new one.
-func console(profile string, forceLogout bool, logoutWait int) error {
-	// Retrieve profile details
-	manager := awsCredentialsManager{profileName: profile}
-	// Retrieve AWS profile and credentials
-	if err := manager.retrieveAndSetProfile(); err != nil {
-		return err
-	}
-	signinToken, err := getSigninToken(manager.roleCred)
+// consoleSignin holds what is needed to open an AWS console session.
+type consoleSignin struct {
+	region      string
+	account     string
+	signinToken string
+}
+
+// console signs into the AWS Management Console for a profile and opens it
+// in the browser, optionally logging out of an existing session first.
+func console(profileName string, forceLogout bool, logoutWait int) error {
+	profile, roleCred, err := retrieveCredentials(profileName, true)
 	if err != nil {
 		return err
 	}
-	manager.signinToken = signinToken
-
-	manager.region = manager.profile.Key("sso_region").String()
-	manager.account = manager.profile.Key("sso_account_id").String()
-	if err = manager.validateProfileParams(); err != nil {
-		logrus.Error(err)
+	signinToken, err := getSigninToken(roleCred)
+	if err != nil {
 		return err
 	}
-	// Construct the sign-in URL
-	signinURL := manager.generateSigninURL()
-	// Handle optional logout
-	manager.handleLogout(forceLogout, logoutWait)
-	// Open the new session in a browser
-	openBrowser(signinURL)
+
+	s := consoleSignin{
+		region:      consoleRegion(profile),
+		account:     profile.AccountID,
+		signinToken: signinToken,
+	}
+	signinURL := s.signinURL()
+	s.handleLogout(forceLogout, logoutWait)
+	openURL(signinURL)
 	return nil
 }
 
-// generateSigninURL builds the AWS console sign-in URL.
-func (m *awsCredentialsManager) generateSigninURL() string {
+// signinURL builds the AWS console sign-in URL.
+func (s consoleSignin) signinURL() string {
 	params := url.Values{}
 	params.Set("Action", "login")
 	params.Set("Issuer", "-aws-sso-console")
-	params.Set("Destination", helper.ConsoleUrl(m.region))
-	params.Set("SigninToken", m.signinToken)
-	return fmt.Sprintf("https://%s.signin.aws.amazon.com/federation?%s", m.account, params.Encode())
+	params.Set("Destination", helper.ConsoleUrl(s.region))
+	params.Set("SigninToken", s.signinToken)
+	return fmt.Sprintf("https://%s.signin.aws.amazon.com/federation?%s", s.account, params.Encode())
 }
 
-// handleLogout optionally logs out of the existing session.
-func (m *awsCredentialsManager) handleLogout(forceLogout bool, logoutWait int) {
-	if forceLogout || logoutWait > 0 {
-		logoutURL := helper.ConsoleLogout(m.region)
-		openBrowser(logoutURL)
-		if logoutWait > 0 {
-			time.Sleep(time.Duration(logoutWait) * time.Second)
+// handleLogout opens the console logout page when forceLogout is true and
+// then waits logoutWait seconds. logoutWait alone never triggers a logout.
+func (s consoleSignin) handleLogout(forceLogout bool, logoutWait int) {
+	if !forceLogout {
+		return
+	}
+	openURL(helper.ConsoleLogout(s.region))
+	if logoutWait > 0 {
+		sleep(time.Duration(logoutWait) * time.Second)
+	}
+}
+
+// consoleRegion returns the region the console opens in: the profile's
+// region when set, otherwise its sso_region.
+func consoleRegion(p profiles.Profile) string {
+	if p.Region != "" {
+		return p.Region
+	}
+	return p.SSORegion
+}
+
+// maxFederationResponse caps how much of the federation response is read.
+const maxFederationResponse = 1 << 20
+
+// getSigninToken obtains a federation sign-in token for the role credentials.
+// The request URL carries the credentials, so no error returned from here
+// contains the URL or the response body.
+func getSigninToken(rc *model.RoleCredential) (string, error) {
+	params := url.Values{}
+	params.Set("Action", "getSigninToken")
+	params.Set("SessionDuration", helper.SessionDuration)
+	sess := map[string]string{
+		"sessionId":    rc.AccessKeyId,
+		"sessionKey":   rc.SecretAccessKey,
+		"sessionToken": rc.SessionToken,
+	}
+	sessB, err := json.Marshal(sess)
+	if err != nil {
+		return "", fmt.Errorf("encoding federation session: %w", err)
+	}
+	params.Set("Session", string(sessB))
+
+	req, err := http.NewRequest(http.MethodGet, federationEndpoint+"?"+params.Encode(), nil)
+	if err != nil {
+		return "", errors.New("building federation request failed")
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		var uerr *url.Error
+		if errors.As(err, &uerr) {
+			err = uerr.Err
 		}
+		return "", fmt.Errorf("federation request failed: %w", err)
 	}
-}
+	defer func() { _ = resp.Body.Close() }()
 
-// validateProfileParams checks required profile parameters.
-func (m *awsCredentialsManager) validateProfileParams() error {
-	if m.region == "" || m.account == "" {
-		return fmt.Errorf("sso_region or sso_account_id is missing for profile %s", m.profileName)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("federation endpoint returned status %d", resp.StatusCode)
 	}
-	return nil
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxFederationResponse))
+	if err != nil {
+		return "", fmt.Errorf("reading federation response: %w", err)
+	}
+
+	var out struct {
+		SigninToken string `json:"SigninToken"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return "", errors.New("federation endpoint returned an invalid response")
+	}
+	if out.SigninToken == "" {
+		return "", errors.New("federation endpoint returned no sign-in token")
+	}
+	return out.SigninToken, nil
 }

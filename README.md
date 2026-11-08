@@ -45,7 +45,7 @@ A Go command-line tool that simplifies AWS IAM Identity Center (AWS SSO) authent
 - **AWS CLI v2** installed and available in `PATH`. `aws-sso-login` calls `aws sso login` and `aws sts get-caller-identity` and reads the credentials the AWS CLI caches in `~/.aws/cli/cache`.
 - At least one SSO profile configured in `~/.aws/config` (see [Configuration](#configuration)).
 - Your SSO user must be assigned to the account and permission set (role) used by the profile.
-- **Go** (version from `go.mod`) only if you build from source.
+- **Go 1.27.3 or newer** (the version in `go.mod`) only if you build from source.
 
 Supported platforms: macOS and Linux on amd64 and arm64. Windows is untested.
 
@@ -77,7 +77,13 @@ mv ./tmp/aws-sso-login /usr/local/bin/
 
 ## **Usage**
 
-All commands that take `--profile` expect the name of a profile from `~/.aws/config` (without the `profile ` prefix).
+All commands that take `--profile` expect the name of a profile from `~/.aws/config` (without the `profile ` prefix). The profile is chosen in this order:
+
+1. `--profile <name>`, accepted by every command.
+2. The `AWS_PROFILE` environment variable.
+3. An interactive picker (`console`, `export` and `import` only), shown when stdin and stderr are both terminals. The picker is drawn on stderr, so `eval "$(aws-sso-login export)"` stays safe.
+
+Otherwise the command fails with `must specify --profile`. `process` never prompts.
 
 ### **Console Command (`console`)**
 
@@ -85,15 +91,15 @@ Opens the AWS Management Console with SSO credentials in the default web browser
 
 #### Usage:
 ```bash
-aws-sso-login console --profile <profile-name> [flags]
+aws-sso-login console [--profile <profile-name>] [flags]
 ```
 
 #### Flags:
-- `--profile` (required): Name of the AWS SSO profile.
-- `--force-logout` (optional, default `true`): Open the console logout page before logging in, so an existing console session does not block the new one.
-- `--logout-wait` (optional, default `1`): Seconds to wait after the logout page before opening the sign-in page.
+- `--profile` (optional): Name of the AWS SSO profile. Defaults to `AWS_PROFILE`, then the picker.
+- `--force-logout` (optional, default `true`): Open the console logout page before logging in, so an existing console session does not block the new one. Pass `--force-logout=false` to skip it.
+- `--logout-wait` (optional, default `1`): Seconds to wait after the logout page before opening the sign-in page. Only used when `--force-logout` is on.
 
-The console opens in the profile's `sso_region`.
+The console opens in the profile's `region` when it is set, otherwise in its `sso_region`. URLs are opened with `open` on macOS and `xdg-open` on Linux; if neither is available (for example on a headless server), the sign-in URL is printed to stderr so you can open it yourself. The federation sign-in request times out after 15 seconds.
 
 #### Example:
 ```bash
@@ -108,7 +114,7 @@ Prints credentials for the specified profile as shell `export` statements.
 
 #### Usage:
 ```bash
-aws-sso-login export --profile <profile-name>
+aws-sso-login export [--profile <profile-name>]
 ```
 
 #### Example:
@@ -133,14 +139,14 @@ export AWS_DEFAULT_REGION="<region>"
 
 ### **Import Command (`import`)**
 
-Fetches credentials for the specified profile and writes them to `~/.aws/credentials` under a section with the same name as the profile. Existing sections are updated in place.
+Fetches credentials for the specified profile and writes them to the shared credentials file (`~/.aws/credentials` or `AWS_SHARED_CREDENTIALS_FILE`) under a section with the same name as the profile. Existing sections are updated in place.
 
 #### Usage:
 ```bash
 aws-sso-login import [--profile <profile-name>]
 ```
 
-`--profile` is optional. When provided, the import runs non-interactively against that profile. When omitted, an interactive picker is presented (see below).
+`--profile` is optional. When provided (or when `AWS_PROFILE` is set), the import runs non-interactively against that profile. When both are omitted on a terminal, an interactive picker is presented (see below).
 
 #### Example (direct profile):
 ```bash
@@ -149,7 +155,7 @@ aws-sso-login import --profile dev-account
 
 #### Interactive selection
 
-When `--profile` is omitted on macOS or Linux, the tool reads `~/.aws/config`, filters to profiles that have `sso_start_url` set, sorts them alphabetically, and presents a picker:
+When neither `--profile` nor `AWS_PROFILE` is set on macOS or Linux, `console`, `export` and `import` read the AWS config file, keep the SSO profiles (legacy and sso-session, including `default`), sort them alphabetically, and present a picker on stderr:
 
 ```
 ? Select an AWS SSO profile:
@@ -160,8 +166,8 @@ When `--profile` is omitted on macOS or Linux, the tool reads `~/.aws/config`, f
 
 Use the arrow keys to move and `Enter` to confirm. The selected profile is then imported exactly as if `--profile <name>` had been passed.
 
-> **Note:** Only profiles with `sso_start_url` present in `~/.aws/config` are shown.
-> The interactive picker requires a TTY (macOS and Linux). Windows is untested.
+> **Note:** Profiles with missing or conflicting SSO settings are not shown.
+> The interactive picker requires stdin and stderr to be terminals (macOS and Linux). Windows is untested.
 
 ---
 
@@ -171,7 +177,7 @@ Prints `credential_process`-compatible JSON for the specified profile. It never 
 
 #### Usage:
 ```bash
-aws-sso-login process --profile <profile-name>
+aws-sso-login process [--profile <profile-name>]
 ```
 
 #### Example `~/.aws/config` usage:
@@ -179,6 +185,8 @@ aws-sso-login process --profile <profile-name>
 [profile dev-account-process]
 credential_process = aws-sso-login process --profile dev-account
 ```
+
+Always pass `--profile` in `credential_process`: the AWS SDK passes your shell's `AWS_PROFILE` to the process, which may name the `credential_process` profile itself rather than the SSO profile.
 
 #### Sample output (formatted for readability; the tool prints a single line):
 ```json
@@ -205,18 +213,24 @@ aws-sso-login version
 
 ## **Configuration**
 
-`aws-sso-login` reads profiles from the AWS CLI config file: `~/.aws/config`, or the path in `AWS_CONFIG_FILE`. Each profile must set:
+`aws-sso-login` reads profiles from the AWS CLI config file: `~/.aws/config`, or the path in `AWS_CONFIG_FILE`. Both profile formats written by AWS CLI v2 are supported. The `default` profile is read from `[default]` (or `[profile default]`); every other profile is read from `[profile <name>]`.
 
-1. `sso_start_url`: The AWS access portal URL for your organization.
-2. `sso_region`: The AWS region of IAM Identity Center.
-3. `sso_account_id`: The AWS account ID.
-4. `sso_role_name`: The permission set (role) name.
+**sso-session profiles** (the default format of `aws configure sso`): the profile sets `sso_session`, `sso_account_id` and `sso_role_name`, and the referenced `[sso-session <name>]` section sets `sso_start_url` and `sso_region`.
 
-Optional:
+```ini
+[profile dev-account]
+sso_session = my-sso
+sso_account_id = 123456789012
+sso_role_name = DeveloperAccess
+region = eu-west-1
 
-- `region`: Default region, exported as `AWS_DEFAULT_REGION` by `export`.
+[sso-session my-sso]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+```
 
-Example:
+**Legacy profiles**: the profile itself sets `sso_start_url`, `sso_region`, `sso_account_id` and `sso_role_name`.
+
 ```ini
 [profile dev-account]
 sso_start_url = https://example.awsapps.com/start
@@ -226,9 +240,11 @@ sso_role_name = DeveloperAccess
 region = eu-west-1
 ```
 
-> **Limitations:**
-> - Profiles that reference an `[sso-session ...]` section (the default format written by recent `aws configure sso`) are not supported yet. Put `sso_start_url` and `sso_region` directly in the profile.
-> - `import` always writes to `~/.aws/credentials`; `AWS_SHARED_CREDENTIALS_FILE` is not honored yet.
+Optional in both formats:
+
+- `region`: Default region, exported as `AWS_DEFAULT_REGION` by `export`.
+
+`import` writes to the AWS shared credentials file: `~/.aws/credentials`, or the path in `AWS_SHARED_CREDENTIALS_FILE`. The file is replaced atomically and always has mode `0600`; a missing directory is created with mode `0700`. Other profiles in the file are kept. If the path is a symlink, the file it points to is updated; hard links to the file are not preserved.
 
 ---
 
@@ -237,14 +253,17 @@ region = eu-west-1
 The project uses [Logrus](https://github.com/sirupsen/logrus).
 
 - Logs are written to `stderr`, so `stdout` of `export` and `process` stays machine-readable.
-- The log level is `info`. Debug-level messages, such as raw AWS CLI stderr, are not shown because there is no flag to change the level yet.
+- `process` and `export` log only warnings and errors by default; `console` and `import` also log progress (`info`).
+- Pass `--debug` to any command, or set `AWS_SSO_LOGIN_DEBUG=1` (or `true`), to see debug logs such as the raw stderr of AWS CLI calls. Credentials and sign-in tokens are never logged.
+- Each failure is reported once, as a single error line.
 
 ---
 
 ## **Error handling**
 
-- **Recoverable errors** (for example, an expired SSO token): `import` and `console` run `aws sso login` once and retry credential retrieval. If the login itself fails, the error is reported and the command exits. `export` and `process` do not start a login.
+- **Recoverable errors** (for example, an expired SSO token): `import` and `console` run `aws sso login` once and retry credential retrieval. The AWS CLI's instructions (authorization URL and code) are shown on stderr, so you can finish the login in any browser when none opens automatically. If the login itself fails, the error is reported and the command exits. `export` and `process` do not start a login.
 - **Unrecoverable errors** (the SSO role is not assigned to your user; AWS returns `ForbiddenException` / `AccessDeniedException` from `GetRoleCredentials`): the CLI does **not** attempt `aws sso login`. It exits immediately with a single line saying the role is unavailable and asking you to contact your AWS administrator.
+- **Missing AWS CLI**: if `aws` is not in `PATH`, commands fail with `AWS CLI v2 is required but "aws" was not found in PATH`.
 - All commands exit with status `1` on failure.
 
 ---
@@ -258,8 +277,12 @@ The project uses [Logrus](https://github.com/sirupsen/logrus).
 | Coverage report     | `make cover`         |
 | Build (host)        | `make build`         |
 | Build all platforms | `make build-all`     |
+| Vet                 | `make vet`           |
+| Format check        | `make fmt-check`     |
+| Checksums           | `make checksums`     |
+| Clean               | `make clean`         |
 
-Binaries are written to `./tmp/`. See [AGENTS.md](AGENTS.md) for repository layout and coding conventions. Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec); project rules are in [`openspec/config.yaml`](openspec/config.yaml).
+Binaries are written to `./tmp/`. Each release also ships `aws-sso-login_checksums.txt`; verify a download with `sha256sum -c aws-sso-login_checksums.txt --ignore-missing` (or `shasum -a 256 -c` on macOS). See [AGENTS.md](AGENTS.md) for repository layout and coding conventions. Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec); project rules are in [`openspec/config.yaml`](openspec/config.yaml).
 
 ---
 
