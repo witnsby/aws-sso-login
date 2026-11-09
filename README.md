@@ -45,7 +45,7 @@ A Go command-line tool that simplifies AWS IAM Identity Center (AWS SSO) authent
 - **AWS CLI v2** installed and available in `PATH`. `aws-sso-login` calls `aws sso login` and `aws sts get-caller-identity` and reads the credentials the AWS CLI caches in `~/.aws/cli/cache`.
 - At least one SSO profile configured in `~/.aws/config` (see [Configuration](#configuration)).
 - Your SSO user must be assigned to the account and permission set (role) used by the profile.
-- **Go 1.27.3 or newer** (the version in `go.mod`) only if you build from source.
+- **Go 1.27 or newer** (the `go` line in `go.mod`) only if you build from source. CI and releases use the toolchain pinned by the `toolchain` line; with the default `GOTOOLCHAIN=auto` Go downloads it for you.
 
 Supported platforms: macOS and Linux on amd64 and arm64. Windows is untested.
 
@@ -270,19 +270,24 @@ The project uses [Logrus](https://github.com/sirupsen/logrus).
 
 ## **Development**
 
-| Task                | Command              |
-| ------------------- | -------------------- |
-| Install deps        | `make install-deps`  |
-| Run tests           | `make tests`         |
-| Coverage report     | `make cover`         |
-| Build (host)        | `make build`         |
-| Build all platforms | `make build-all`     |
-| Vet                 | `make vet`           |
-| Format check        | `make fmt-check`     |
-| Checksums           | `make checksums`     |
-| Clean               | `make clean`         |
+| Task                | Command                  |
+| ------------------- | ------------------------ |
+| Install deps        | `make install-deps`      |
+| Run tests           | `make tests`             |
+| Coverage report     | `make cover`             |
+| Build (host)        | `make build`             |
+| Build all platforms | `make build-all`         |
+| Vet                 | `make vet`               |
+| Format check        | `make fmt-check`         |
+| Toolchain check     | `make check-toolchain`   |
+| Action pin check    | `make check-action-pins` |
+| Release notes       | `make release-notes VERSION=vX.Y.Z` |
+| Checksums           | `make checksums`         |
+| Clean               | `make clean`             |
 
-Binaries are written to `./tmp/`. Each release also ships `aws-sso-login_checksums.txt`; verify a download with `sha256sum -c aws-sso-login_checksums.txt --ignore-missing` (or `shasum -a 256 -c` on macOS). See [AGENTS.md](AGENTS.md) for repository layout and coding conventions. Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec); project rules are in [`openspec/config.yaml`](openspec/config.yaml).
+GitHub Actions in `.github/workflows/` are referenced by full commit SHA with the version in a comment (`uses: owner/repo@<sha> # vX.Y.Z`); CI runs `make check-action-pins` and fails on tag or branch references. Dependabot keeps the pins up to date.
+
+Pushing a `vX.Y.Z` tag publishes a release whose description is the `## [vX.Y.Z]` section of `CHANGELOG.md`; the release workflow fails before publishing anything when that section is missing or empty, so add it before tagging. Binaries are written to `./tmp/`. Each release also ships `aws-sso-login_checksums.txt`; verify a download with `sha256sum -c aws-sso-login_checksums.txt --ignore-missing` (or `shasum -a 256 -c` on macOS). See [AGENTS.md](AGENTS.md) for repository layout and coding conventions. Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec); project rules are in [`openspec/config.yaml`](openspec/config.yaml).
 
 ---
 

@@ -38,6 +38,10 @@ func captureStdout(t *testing.T) *bytes.Buffer {
 // execute runs the real command tree like Run does, without exiting.
 func execute(t *testing.T, args ...string) error {
 	t.Helper()
+	// Commands set the global log level; restore it so later tests do not
+	// depend on which command ran before them.
+	level := logrus.GetLevel()
+	t.Cleanup(func() { logrus.SetLevel(level) })
 	root := newRootCmd()
 	root.SetArgs(args)
 	err := root.Execute()

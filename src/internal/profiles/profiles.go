@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-ini/ini"
+	"github.com/witnsby/aws-sso-login/src/internal/awsini"
 )
 
 // Profile holds the resolved SSO configuration of a single AWS named profile.
@@ -77,7 +78,7 @@ func ListSSOProfiles(configPath string) ([]Profile, error) {
 }
 
 func load(configPath string) (*ini.File, error) {
-	cfg, err := ini.LoadSources(ini.LoadOptions{}, configPath)
+	cfg, err := awsini.Load(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("loading aws config %s: %w", configPath, err)
 	}

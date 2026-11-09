@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v0.2.1] - 2026-11-09
+
+### Fixed
+
+- Values in `~/.aws/config` and `~/.aws/credentials` are now read the way the
+  AWS CLI reads them: `#` and `;` inside a value and surrounding double
+  quotes are kept. `import` no longer truncates or unquotes values of other
+  profiles in the credentials file, and legacy profiles whose
+  `sso_start_url` ends in `/#` find their cached credentials again. (#39)
+- `import` no longer re-aligns the keys of profiles it does not update; the
+  credentials file is written with plain `key = value` lines. (#40)
+- Only AWS `ForbiddenException` and `AccessDeniedException` errors are
+  reported as an unassigned SSO role. Other errors that merely mention "no
+  access" now lead to `aws sso login` (`console`, `import`) or to the
+  `aws sso login` advice (`export`, `process`). (#44)
+
+### Changed
+
+- `go.mod` declares `go 1.27` as the minimum and pins `toolchain go1.27.3`
+  for CI and release builds; CI fails when the active toolchain differs.
+  (#45)
+- GitHub Actions in the CI and release workflows are pinned to full commit
+  SHAs, and CI fails on tag or branch references (`make check-action-pins`).
+  (#42)
+- GitHub release descriptions are taken from the tag's section in
+  `CHANGELOG.md` (`make release-notes`); the release workflow fails before
+  publishing when that section is missing. (#43)
+- Dependabot no longer configures the non-existent `docker` ecosystem and
+  writes Conventional Commit messages (`chore(deps): ...`). (#41)
+
 ## [v0.2.0] - 2026-11-09
 
 ### Added
@@ -87,7 +117,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Interactive profile picker for `import` when `--profile` is omitted (charmbracelet/huh).
 
-[Unreleased]: https://github.com/witnsby/aws-sso-login/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/witnsby/aws-sso-login/compare/v0.2.1...HEAD
+[v0.2.1]: https://github.com/witnsby/aws-sso-login/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/witnsby/aws-sso-login/compare/v0.1.1...v0.2.0
 [v0.1.1]: https://github.com/witnsby/aws-sso-login/compare/v0.1.0...v0.1.1
 [v0.1.0]: https://github.com/witnsby/aws-sso-login/compare/v0.0.8...v0.1.0

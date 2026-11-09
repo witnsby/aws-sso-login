@@ -39,6 +39,26 @@ fmt-check:
 	@out="$$(gofmt -l ./src)"; \
 	if [ -n "$$out" ]; then echo "Files need gofmt:"; echo "$$out"; exit 1; fi
 
+# Fail unless the active Go toolchain is the one pinned in go.mod
+.PHONY: check-toolchain
+check-toolchain:
+	@want="$$(awk '$$1 == "toolchain" {print $$2}' go.mod)"; \
+	got="$$(go env GOVERSION)"; \
+	if [ -z "$$want" ]; then echo "go.mod has no toolchain directive"; exit 1; fi; \
+	if [ "$$got" != "$$want" ]; then echo "Go toolchain is $$got, go.mod pins $$want"; exit 1; fi; \
+	echo "Go toolchain $$got matches go.mod"
+
+# Fail when a workflow references an action by tag or branch instead of a
+# full commit SHA. Local actions (uses: ./path) are ignored.
+WORKFLOWS ?= .github/workflows
+.PHONY: check-action-pins
+check-action-pins:
+	@bad="$$(grep -HnE '^[[:space:]]*(-[[:space:]]*)?uses:' $(WORKFLOWS)/*.y*ml \
+		| grep -vE 'uses:[[:space:]]*\./' \
+		| grep -vE 'uses:[[:space:]]*[^[:space:]@]+@[0-9a-f]{40}([[:space:]]|$$)' || true)"; \
+	if [ -n "$$bad" ]; then echo "Actions must be pinned to a full commit SHA:"; echo "$$bad"; exit 1; fi; \
+	echo "All actions are pinned to commit SHAs"
+
 # Build single binary
 .PHONY: build
 build:
@@ -64,6 +84,26 @@ checksums:
 	if command -v sha256sum >/dev/null; then sha256sum $(OUT)_*_* > $(OUT)_checksums.txt; \
 	else shasum -a 256 $(OUT)_*_* > $(OUT)_checksums.txt; fi
 
+# Release notes for VERSION: the body of its "## [VERSION]" section in
+# CHANGELOG.md, up to the next "## [" heading or the link references.
+# Fails when the section is missing or empty.
+CHANGELOG ?= CHANGELOG.md
+.PHONY: release-notes
+release-notes:
+	@mkdir -p $(BUILD_DIR)
+	@awk -v v="$(VERSION)" ' \
+		index($$0, "## [" v "]") == 1 { found = 1; next } \
+		found && (/^## \[/ || /^\[[^]]+\]: /) { exit } \
+		found { lines[++n] = $$0 } \
+		END { \
+			s = 1; while (s <= n && lines[s] ~ /^[[:space:]]*$$/) s++; \
+			e = n; while (e >= s && lines[e] ~ /^[[:space:]]*$$/) e--; \
+			for (i = s; i <= e; i++) print lines[i] \
+		}' $(CHANGELOG) > $(BUILD_DIR)/release-notes.md
+	@if [ ! -s $(BUILD_DIR)/release-notes.md ]; then \
+		echo "$(CHANGELOG) has no entry for $(VERSION)"; exit 1; fi
+	@echo "Release notes for $(VERSION) written to $(BUILD_DIR)/release-notes.md"
+
 # Remove build output
 .PHONY: clean
 clean:
@@ -77,7 +117,10 @@ help:
 	@echo "  cover           Run coverage"
 	@echo "  vet             Run go vet"
 	@echo "  fmt-check       Fail if any Go file needs gofmt"
+	@echo "  check-toolchain Fail unless the Go toolchain matches go.mod"
+	@echo "  check-action-pins Fail if a workflow action is not pinned to a commit SHA"
 	@echo "  build           Build the application (single platform)"
 	@echo "  build-all       Build the application for multiple platforms"
 	@echo "  checksums       Write SHA-256 checksums for the built binaries"
+	@echo "  release-notes   Write the CHANGELOG.md section for VERSION=vX.Y.Z to tmp/release-notes.md"
 	@echo "  clean           Remove build artifacts"

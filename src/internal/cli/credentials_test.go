@@ -27,8 +27,18 @@ func TestIsSSORoleNoAccessStderr(t *testing.T) {
 			want:   true,
 		},
 		{
-			name:   "lowercase no access phrase",
+			name:   "lowercase no access phrase without exception name",
 			stderr: "request failed: no access for the requested resource",
+			want:   false,
+		},
+		{
+			name:   "proxy error mentioning no access",
+			stderr: "proxy error: no access to upstream host",
+			want:   false,
+		},
+		{
+			name:   "lowercase exception name",
+			stderr: "an error occurred (forbiddenexception): no access",
 			want:   true,
 		},
 		{

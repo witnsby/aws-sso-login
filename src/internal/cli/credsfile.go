@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/go-ini/ini"
+	"github.com/witnsby/aws-sso-login/src/internal/awsini"
 	"github.com/witnsby/aws-sso-login/src/internal/model"
 )
 
@@ -25,15 +26,15 @@ func updateCredentialsFile(path, profileName string, roleCred *model.RoleCredent
 	return writeCredentialsFile(path, file)
 }
 
-// loadCredentialsFile loads the credentials file, or returns an empty file
-// when it does not exist yet.
+// loadCredentialsFile loads the credentials file with the AWS CLI value
+// semantics from awsini, or returns an empty file when it does not exist yet.
 func loadCredentialsFile(path string) (*ini.File, error) {
-	file, err := ini.Load(path)
+	file, err := awsini.Load(path)
 	if err == nil {
 		return file, nil
 	}
 	if errors.Is(err, fs.ErrNotExist) {
-		return ini.Empty(), nil
+		return ini.Empty(awsini.LoadOptions()), nil
 	}
 	return nil, fmt.Errorf("loading credentials file %s: %w", path, err)
 }

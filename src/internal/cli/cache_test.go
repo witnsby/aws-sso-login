@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -102,4 +103,30 @@ sso_region = us-east-1
 	require.NoError(t, err)
 	assert.Equal(t, fakeAccessKey, rc.AccessKeyId)
 	assert.Empty(t, runner.Calls())
+}
+
+// TestProcess_StartURLWithHash covers legacy start URLs copied from the
+// browser with a trailing '#': the cache key must be built from the full URL
+// like the AWS CLI does (issue #39).
+func TestProcess_StartURLWithHash(t *testing.T) {
+	setupAWSEnv(t, `[profile dev]
+sso_start_url = https://example.awsapps.com/start/#
+sso_region = us-east-1
+sso_account_id = 123456789012
+sso_role_name = Admin
+`)
+	runner := installFakeRunner(t, nil)
+
+	// printf '%s' '{"accountId":"123456789012","roleName":"Admin","startUrl":"https://example.awsapps.com/start/#"}' | shasum
+	cacheFile := filepath.Join(os.Getenv("HOME"), ".aws", "cli", "cache", "15df9758d7856a6f29cc30ca915a0f94c688ebff.json")
+	require.NoError(t, os.MkdirAll(filepath.Dir(cacheFile), 0o700))
+	payload := fmt.Sprintf(`{"Credentials":{"AccessKeyId":%q,"SecretAccessKey":%q,"SessionToken":%q,"Expiration":%q}}`,
+		fakeAccessKey, fakeSecretKey, fakeSessionToken, time.Now().Add(time.Hour).UTC().Format(time.RFC3339))
+	require.NoError(t, os.WriteFile(cacheFile, []byte(payload), 0o600))
+
+	out := captureStdout(t)
+	require.NoError(t, execute(t, "process", "--profile", "dev"))
+
+	assert.Contains(t, out.String(), fakeAccessKey)
+	assert.Empty(t, runner.Calls(), "the AWS CLI must not be invoked on a cache hit")
 }
