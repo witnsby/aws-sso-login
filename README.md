@@ -158,11 +158,14 @@ aws-sso-login import --profile dev-account
 When neither `--profile` nor `AWS_PROFILE` is set on macOS or Linux, `console`, `export` and `import` read the AWS config file, keep the SSO profiles (legacy and sso-session, including `default`), sort them alphabetically, and present a picker on stderr:
 
 ```
-? Select an AWS SSO profile:
-  > dev-account                     123456789012  AdminAccess
-    prod-readonly                   123456789012  ReadOnlyAccess
-    staging-engineer                123456789012  EngineerAccess
+┃ /
+┃ Type to filter by name, account ID or role
+┃ > dev-account                     123456789012  AdminAccess
+┃   prod-readonly                   123456789012  ReadOnlyAccess
+┃   staging-engineer                123456789012  EngineerAccess
 ```
+
+Start typing to narrow the list: the picker keeps the profiles whose name, account ID or role name contains the typed text, ignoring case. For example, `prod` keeps `prod-readonly`, and `engineer` keeps `staging-engineer`. `Esc` clears the filter. The picker is at most 15 lines tall and scrolls when more profiles match.
 
 Use the arrow keys to move and `Enter` to confirm. The selected profile is then imported exactly as if `--profile <name>` had been passed.
 
