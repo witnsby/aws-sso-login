@@ -13,6 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// rendered returns err as the user sees it on one line.
+func rendered(err error) string { return asUserError(err).oneLine() }
+
 func TestUserErrorUnwraps(t *testing.T) {
 	cause := fmt.Errorf("%w for profile %q", errSSORoleNoAccess, "dev")
 	err := fmt.Errorf("outer: %w", &userError{title: "No access", code: exitNoAccess, err: cause})
@@ -142,4 +145,111 @@ func TestUsageErrors(t *testing.T) {
 			assert.Empty(t, runner.Calls())
 		})
 	}
+}
+
+// ssoSessionNoAccessConfig has a legacy and an sso-session profile whose
+// role is ReadOnly in account 123456789012.
+const ssoSessionNoAccessConfig = `[profile legacy]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+sso_account_id = 123456789012
+sso_role_name = ReadOnly
+region = eu-west-1
+
+[profile session]
+sso_session = corp
+sso_account_id = 123456789012
+sso_role_name = ReadOnly
+region = eu-west-1
+
+[sso-session corp]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+`
+
+// TestRoleNotAssignedNamesAccountAndRole covers specs/credential-retrieval
+// "Role not assigned" for legacy and sso-session profiles on every command.
+func TestRoleNotAssignedNamesAccountAndRole(t *testing.T) {
+	for _, profile := range []string{"legacy", "session"} {
+		for _, command := range []string{"console", "import", "export", "process"} {
+			t.Run(profile+"/"+command, func(t *testing.T) {
+				setStderrTerminal(t, false)
+				setupAWSEnv(t, ssoSessionNoAccessConfig)
+				runner := installFakeRunner(t, func(string, []string) fakeResult {
+					return fakeResult{
+						Stderr: "An error occurred (AccessDeniedException) when calling the GetRoleCredentials operation: No access",
+						Exit:   255,
+					}
+				})
+				logs := captureLogs(t)
+				out := captureStdout(t)
+
+				code, err := executeCode(t, command, "--profile", profile)
+
+				require.ErrorIs(t, err, errSSORoleNoAccess)
+				assert.Equal(t, exitNoAccess, code)
+				assert.Contains(t, logs.String(), "["+profile+"]")
+				assert.Contains(t, logs.String(), "123456789012")
+				assert.Contains(t, logs.String(), "ReadOnly")
+				assert.Contains(t, logs.String(), "Fix: Ask your AWS administrator")
+				assert.Empty(t, out.String())
+				assert.Empty(t, runner.CallsMatching("aws sso login"))
+				if command == "process" {
+					assert.Len(t, nonEmptyLines(logs.String()), 1)
+				}
+			})
+		}
+	}
+}
+
+// TestFailureExitCodes covers specs/cli-output "Exit codes" through the
+// command tree.
+func TestFailureExitCodes(t *testing.T) {
+	t.Run("expired SSO session for export", func(t *testing.T) {
+		setStderrTerminal(t, false)
+		setupAWSEnv(t, legacyConfig)
+		installFakeRunner(t, func(string, []string) fakeResult {
+			return fakeResult{Stderr: "Token has expired and refresh failed", Exit: 255}
+		})
+		logs := captureLogs(t)
+		captureStdout(t)
+
+		code, _ := executeCode(t, "export", "--profile", "dev")
+		assert.Equal(t, exitNotSignedIn, code)
+		assert.Contains(t, logs.String(), "Fix: Run 'aws sso login --profile dev'")
+	})
+
+	t.Run("AWS CLI missing for import", func(t *testing.T) {
+		setStderrTerminal(t, false)
+		setupAWSEnv(t, legacyConfig)
+		runner := installFakeRunner(t, nil)
+		missingExecutables(t, "aws")
+		captureLogs(t)
+
+		code, _ := executeCode(t, "import", "--profile", "dev")
+		assert.Equal(t, exitNoAWSCLI, code)
+		assert.Empty(t, runner.Calls())
+	})
+
+	t.Run("failed login for import", func(t *testing.T) {
+		setStderrTerminal(t, false)
+		setupAWSEnv(t, legacyConfig)
+		runner := loginScript(t, []fakeResult{{Stderr: expiredTokenStderr, Exit: 255}}, 1)
+		captureLogs(t)
+
+		code, _ := executeCode(t, "import", "--profile", "dev")
+		assert.Equal(t, exitNotSignedIn, code)
+		assert.Len(t, runner.CallsMatching("aws sso login"), 1)
+	})
+
+	t.Run("process without a profile", func(t *testing.T) {
+		setStderrTerminal(t, false)
+		setupAWSEnv(t, legacyConfig)
+		setInteractive(t, true)
+		logs := captureLogs(t)
+
+		code, _ := executeCode(t, "process")
+		assert.Equal(t, exitUsage, code)
+		assert.Len(t, nonEmptyLines(logs.String()), 1)
+	})
 }

@@ -21,12 +21,12 @@ No GitHub issues are related (see proposal.md, Related issues), so commits carry
 
 ## 3. Classify credential and profile failures
 
-- [ ] 3.1 In `retrieveCredentials`, wrap `errSSORoleNoAccess` into a code 4 `userError` that names the profile, `AccountID` and `RoleName`, with the hint to ask an administrator or choose another profile; verify with tests for a legacy profile and an sso-session profile (`123456789012`, `ReadOnly`) on `console`, `import`, `export` and `process`, and that no `aws sso login` runs
-- [ ] 3.2 Turn the missing AWS CLI error into a code 5 `userError` whose hint points to the AWS CLI v2 install guide; verify with an `import --profile dev` test where `lookPath` fails: exit 5, no login attempted
-- [ ] 3.3 Turn the non-login refresh failure (`export`, `process`) into a code 3 "not signed in" `userError` with the hint `aws sso login --profile <name>`, including the unrelated "no access" proxy case; verify with the existing expired-token and proxy-error tests updated to expect exit 3
-- [ ] 3.4 Turn the `aws sso login` failure into a code 3 `userError` with the hint to check the AWS CLI output above and try again; verify with `login_test.go` that a failing login gives exit 3 and runs only once
-- [ ] 3.5 Turn the missing `--profile` error in `resolveProfileName` into a code 2 `userError` with the hint naming `--profile <name>` and `AWS_PROFILE`, and the picker cancellation in `HuhSelector.Pick` into a code 130 `userError`; update `profileflag_test.go` to check the codes for the non-interactive, `process` and cancelled-picker paths
-- [ ] 3.6 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate unified-cli-output --strict`, tick 3.1–3.6 and commit `feat(cli): classify credential and profile failures`
+- [x] 3.1 In `retrieveCredentials`, wrap `errSSORoleNoAccess` into a code 4 `userError` that names the profile, `AccountID` and `RoleName`, with the hint to ask an administrator or choose another profile; verify with tests for a legacy profile and an sso-session profile (`123456789012`, `ReadOnly`) on `console`, `import`, `export` and `process`, and that no `aws sso login` runs
+- [x] 3.2 Turn the missing AWS CLI error into a code 5 `userError` whose hint points to the AWS CLI v2 install guide; verify with an `import --profile dev` test where `lookPath` fails: exit 5, no login attempted
+- [x] 3.3 Turn the non-login refresh failure (`export`, `process`) into a code 3 "not signed in" `userError` with the hint `aws sso login --profile <name>`, including the unrelated "no access" proxy case; verify with the existing expired-token and proxy-error tests updated to expect exit 3
+- [x] 3.4 Turn the `aws sso login` failure into a code 3 `userError` with the hint to check the AWS CLI output above and try again; verify with `login_test.go` that a failing login gives exit 3 and runs only once
+- [x] 3.5 Turn the missing `--profile` error in `resolveProfileName` into a code 2 `userError` with the hint naming `--profile <name>` and `AWS_PROFILE`, and the picker cancellation in `HuhSelector.Pick` into a code 130 `userError`; update `profileflag_test.go` to check the codes for the non-interactive, `process` and cancelled-picker paths
+- [x] 3.6 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate unified-cli-output --strict`, tick 3.1–3.6 and commit `feat(cli): classify credential and profile failures`
 
 ## 4. Progress and results as status lines
 

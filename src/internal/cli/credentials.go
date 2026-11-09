@@ -33,16 +33,16 @@ var errAWSCLINotFound = errors.New(`AWS CLI v2 is required but "aws" was not fou
 // the aws executable is not in PATH.
 func awsCommand(args ...string) (*exec.Cmd, error) {
 	if _, err := lookPath("aws"); err != nil {
-		return nil, errAWSCLINotFound
+		return nil, newAWSCLIMissingError()
 	}
 	return execCommand("aws", args...), nil
 }
 
 // mapAWSExecError turns a "not found" error from running the AWS CLI into
-// errAWSCLINotFound and returns any other error unchanged.
+// the missing AWS CLI error and returns any other error unchanged.
 func mapAWSExecError(err error) error {
 	if errors.Is(err, exec.ErrNotFound) {
-		return errAWSCLINotFound
+		return newAWSCLIMissingError()
 	}
 	return err
 }
@@ -62,7 +62,10 @@ func retrieveCredentials(profileName string, allowLogin bool) (profiles.Profile,
 	if err == nil {
 		return profile, roleCred, nil
 	}
-	if !allowLogin || errors.Is(err, errSSORoleNoAccess) || errors.Is(err, errAWSCLINotFound) {
+	if errors.Is(err, errSSORoleNoAccess) {
+		return profiles.Profile{}, nil, newRoleNoAccessError(profile, err)
+	}
+	if !allowLogin || errors.Is(err, errAWSCLINotFound) {
 		return profiles.Profile{}, nil, err
 	}
 
@@ -72,6 +75,9 @@ func retrieveCredentials(profileName string, allowLogin bool) (profiles.Profile,
 	}
 
 	roleCred, err = getRoleCredentials(profileName, profile)
+	if errors.Is(err, errSSORoleNoAccess) {
+		return profiles.Profile{}, nil, newRoleNoAccessError(profile, err)
+	}
 	if err != nil {
 		return profiles.Profile{}, nil, err
 	}
@@ -92,7 +98,10 @@ func ssoLogin(profileName string) error {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("aws sso login failed for profile %q: %w", profileName, mapAWSExecError(err))
+		if mapped := mapAWSExecError(err); errors.Is(mapped, errAWSCLINotFound) {
+			return mapped
+		}
+		return newLoginFailedError(profileName, fmt.Errorf("aws sso login failed for profile %q: %w", profileName, err))
 	}
 	return nil
 }
@@ -158,7 +167,7 @@ func updateCachedRoleCredentials(profileName string) error {
 		if isSSORoleNoAccessStderr(stderrStr) {
 			return fmt.Errorf("%w for profile %q", errSSORoleNoAccess, profileName)
 		}
-		return fmt.Errorf("could not refresh credentials for profile %q; run 'aws sso login --profile %s'", profileName, profileName)
+		return newNotSignedInError(profileName)
 	}
 	logrus.Infof("Updated credentials for %s", strings.TrimSpace(string(output)))
 	return nil

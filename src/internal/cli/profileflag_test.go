@@ -1,13 +1,11 @@
 package cli
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/witnsby/aws-sso-login/src/internal/helper"
 )
 
 // runResolved executes args on a fresh root command whose subcommand RunE is
@@ -84,7 +82,7 @@ func TestProfileFlagPrecedence(t *testing.T) {
 					return
 				}
 				require.Error(t, err)
-				assert.Equal(t, helper.ErrorProfileSpecification, err.Error())
+				assertNoProfileError(t, err)
 				assert.Zero(t, rec.calls, "process never prompts")
 			})
 
@@ -96,19 +94,20 @@ func TestProfileFlagPrecedence(t *testing.T) {
 
 				_, err := runResolved(t, c.name)
 				require.Error(t, err)
-				assert.Equal(t, helper.ErrorProfileSpecification, err.Error())
+				assertNoProfileError(t, err)
 				assert.Zero(t, rec.calls)
 			})
 
 			if c.allowPicker {
 				t.Run("picker cancelled", func(t *testing.T) {
 					setupAWSEnv(t, legacyConfig)
-					swapDefaultSelector(t, fakeSelector{err: errors.New("profile selection cancelled")})
+					swapDefaultSelector(t, fakeSelector{err: errSelectionCancelled})
 					setInteractive(t, true)
 
 					_, err := runResolved(t, c.name)
 					require.Error(t, err)
-					assert.Contains(t, err.Error(), "profile selection cancelled")
+					assert.Contains(t, err.Error(), "Profile selection cancelled")
+					assert.Equal(t, exitCancelled, asUserError(err).code)
 				})
 			}
 		})
@@ -120,4 +119,13 @@ func TestVersionNeedsNoProfile(t *testing.T) {
 	setInteractive(t, false)
 	_, err := runResolved(t, "version")
 	require.NoError(t, err)
+}
+
+// assertNoProfileError checks the usage error for a missing profile.
+func assertNoProfileError(t *testing.T, err error) {
+	t.Helper()
+	require.Error(t, err)
+	assert.Equal(t, exitUsage, asUserError(err).code)
+	assert.Contains(t, rendered(err), "--profile <name>")
+	assert.Contains(t, rendered(err), "AWS_PROFILE")
 }

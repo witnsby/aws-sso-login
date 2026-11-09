@@ -7,6 +7,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/witnsby/aws-sso-login/src/internal/helper"
+	"github.com/witnsby/aws-sso-login/src/internal/profiles"
 )
 
 // Exit statuses. They are public API: scripts rely on them.
@@ -46,6 +48,70 @@ func newUsageError(cmd *cobra.Command, err error) error {
 		code:  exitUsage,
 		err:   err,
 	}
+}
+
+// newRoleNoAccessError reports that the role of profile p is not assigned
+// to the signed-in user (exit status 4).
+func newRoleNoAccessError(p profiles.Profile, cause error) error {
+	return &userError{
+		title: fmt.Sprintf("No access to the SSO role for profile [%s]", p.Name),
+		details: []string{
+			fmt.Sprintf("You are signed in to AWS SSO, but role %s in account %s is not assigned to your user.", p.RoleName, p.AccountID),
+		},
+		hint: "Ask your AWS administrator to assign the role, or choose another profile.",
+		code: exitNoAccess,
+		err:  cause,
+	}
+}
+
+// newAWSCLIMissingError reports that the aws executable is not in PATH
+// (exit status 5).
+func newAWSCLIMissingError() error {
+	return &userError{
+		title: errAWSCLINotFound.Error(),
+		hint:  "Install AWS CLI v2: " + awsCLIInstallURL,
+		code:  exitNoAWSCLI,
+		err:   errAWSCLINotFound,
+	}
+}
+
+// newNotSignedInError reports that credentials for profileName could not be
+// refreshed without a new SSO sign-in (exit status 3).
+func newNotSignedInError(profileName string) error {
+	return &userError{
+		title:   fmt.Sprintf("Not signed in to AWS SSO for profile [%s]", profileName),
+		details: []string{"The SSO session has expired or the credentials could not be refreshed."},
+		hint:    fmt.Sprintf("Run 'aws sso login --profile %s', or 'aws-sso-login import --profile %s'.", profileName, profileName),
+		code:    exitNotSignedIn,
+		err:     fmt.Errorf("could not refresh credentials for profile %q", profileName),
+	}
+}
+
+// newLoginFailedError reports that `aws sso login` failed (exit status 3).
+func newLoginFailedError(profileName string, cause error) error {
+	return &userError{
+		title: fmt.Sprintf("aws sso login failed for profile [%s]", profileName),
+		hint:  "Check the AWS CLI output above and try again.",
+		code:  exitNotSignedIn,
+		err:   cause,
+	}
+}
+
+// newNoProfileError reports that no profile name was given where the
+// picker cannot be shown (exit status 2).
+func newNoProfileError() error {
+	return &userError{
+		title: "No profile specified",
+		hint:  "Pass --profile <name> or set AWS_PROFILE.",
+		code:  exitUsage,
+		err:   errors.New(helper.ErrorProfileSpecification),
+	}
+}
+
+// newSelectionCancelledError reports that the user cancelled the picker
+// (exit status 130).
+func newSelectionCancelledError(cause error) error {
+	return &userError{title: "Profile selection cancelled", code: exitCancelled, err: cause}
 }
 
 // asUserError returns the userError in err's chain, or a generic one that
