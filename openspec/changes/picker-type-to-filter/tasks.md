@@ -17,4 +17,4 @@ Each group is one logical change. It ends with its own commit after `make tests`
 ## 3. Verification and PR
 
 - [x] 3.1 Run `make tests`, `go vet ./...`, `gofmt -l ./src` (no output) and `openspec validate picker-type-to-filter --strict`, then `openspec validate --all --strict`.
-- [ ] 3.2 Open the PR. The description links the change id `picker-type-to-filter` and states that no issues are related.
+- [x] 3.2 Open the PR. The description links the change id `picker-type-to-filter` and states that no issues are related.
