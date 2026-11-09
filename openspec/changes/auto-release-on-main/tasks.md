@@ -47,7 +47,7 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 8. Pull request
 
-- [ ] 8.1 Push the branch and open the `aws-sso-login` PR. The description links the change id `auto-release-on-main`, lists `Refs #43` and `Refs #34`, links the tap PR, states that merging it creates no release, and lists the maintainer step to create `HOMEBREW_TAP_TOKEN`.
+- [x] 8.1 Push the branch and open the `aws-sso-login` PR. The description links the change id `auto-release-on-main`, lists `Refs #43` and `Refs #34`, links the tap PR, states that merging it creates no release, and lists the maintainer step to create `HOMEBREW_TAP_TOKEN`.
 
 ## Workflow follow-up
 
