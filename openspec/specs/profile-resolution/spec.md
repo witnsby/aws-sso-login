@@ -19,7 +19,7 @@ Every command SHALL choose the profile name from, in order: a non-empty `--profi
 - **AND** the picker is not shown
 
 ### Requirement: Interactive picker availability
-When no profile name comes from the flag or `AWS_PROFILE`, `console`, `export` and `import` SHALL show the interactive picker only if both stdin and stderr are terminals. The picker SHALL render on stderr. Otherwise these commands, and `process` in every case, SHALL fail with an error that asks for `--profile` and exit with status 1.
+When no profile name comes from the flag or `AWS_PROFILE`, `console`, `export` and `import` SHALL show the interactive picker only if both stdin and stderr are terminals. The picker SHALL render on stderr. Otherwise these commands, and `process` in every case, SHALL fail with an error that asks for `--profile` or `AWS_PROFILE` and exit with status 2. A cancelled picker SHALL exit with status 130.
 
 #### Scenario: Picker on a terminal
 - **WHEN** the user runs `aws-sso-login import` on a terminal with no `--profile` and no `AWS_PROFILE`
@@ -33,18 +33,18 @@ When no profile name comes from the flag or `AWS_PROFILE`, `console`, `export` a
 
 #### Scenario: Non-interactive invocation without a profile
 - **WHEN** `aws-sso-login import` runs with stdin not attached to a terminal and with no `--profile` and no `AWS_PROFILE`
-- **THEN** stderr reports that `--profile` must be specified
-- **AND** stdout is empty and the exit status is 1
+- **THEN** stderr reports that `--profile` must be specified, with a `Fix:` line naming `--profile <name>` and `AWS_PROFILE`
+- **AND** stdout is empty and the exit status is 2
 
 #### Scenario: process never prompts
 - **WHEN** `aws-sso-login process` runs on a terminal with no `--profile` and no `AWS_PROFILE`
 - **THEN** no picker is shown
-- **AND** stderr reports that `--profile` must be specified, stdout is empty and the exit status is 1
+- **AND** stderr reports that `--profile` must be specified, stdout is empty and the exit status is 2
 
 #### Scenario: Picker cancelled
 - **WHEN** the user cancels the picker
 - **THEN** stderr reports that profile selection was cancelled
-- **AND** stdout is empty and the exit status is 1
+- **AND** stdout is empty and the exit status is 130
 
 ### Requirement: Profile section lookup
 A profile name SHALL map to its AWS config section the same way for every command and for the picker: `default` SHALL map to `[default]`, falling back to `[profile default]`. Every other name SHALL map to `[profile <name>]`. The config file SHALL be read from `AWS_CONFIG_FILE` when set, otherwise from `~/.aws/config`.
@@ -134,3 +134,53 @@ Values in the AWS config file SHALL be read the way AWS CLI v2 reads them: `#` a
 - **WHEN** the config file contains values with inline `#` and the user runs `process --profile missing`
 - **THEN** stderr reports that profile `missing` was not found in the config file path
 - **AND** stdout is empty and the exit status is 1
+
+### Requirement: Picker filters as the user types
+The picker SHALL open with its filter input focused and SHALL show the hint `Type to filter by name, account ID or role`. While the user types, the picker SHALL list only the profiles whose row (name, account ID and role name) contains the typed text, compared case-insensitively. `Esc` SHALL clear the filter. The filter input and hint SHALL be drawn on stderr.
+
+#### Scenario: Filter by name fragment
+- **WHEN** the picker lists `dev`, `hipaa-vg-prod-ro` and `hipaa-vg-prod-rw` and the user types `vg-prod`
+- **THEN** the picker lists `hipaa-vg-prod-ro` and `hipaa-vg-prod-rw` and not `dev`
+
+#### Scenario: Filter by account ID
+- **WHEN** the user types part of an account ID such as `1234567`
+- **THEN** the picker lists only the profiles whose account ID contains that text
+
+#### Scenario: Filter by role name, case-insensitively
+- **WHEN** the user types `readonly` and a profile has role `ReadOnlyAccess`
+- **THEN** that profile is listed
+
+#### Scenario: Filter matches both profile formats
+- **WHEN** the config file defines a legacy SSO profile `legacy-dev` and an sso-session profile `session-dev` and the user types `dev`
+- **THEN** the picker lists both profiles
+
+#### Scenario: No profile matches
+- **WHEN** the user types text that no row contains
+- **THEN** the picker lists no profiles
+- **AND** pressing `Esc` clears the filter and lists every SSO profile again
+
+#### Scenario: Filtered picker keeps export eval-safe
+- **WHEN** the user runs `eval "$(aws-sso-login export)"` on a terminal, types a filter and selects a profile
+- **THEN** the picker, the filter input and the hint are drawn on stderr
+- **AND** stdout contains only the `export` lines
+
+#### Scenario: Explicit profile skips the filter
+- **WHEN** the user runs `aws-sso-login import --profile dev`
+- **THEN** no picker and no filter input are shown
+
+#### Scenario: Cancelled while filtering
+- **WHEN** the user types a filter and then presses `Ctrl+C`
+- **THEN** stderr reports that profile selection was cancelled
+- **AND** stdout is empty and the exit status is 130
+
+### Requirement: Picker height is bounded
+The picker SHALL be at most 15 lines tall, filter input and hint included, and SHALL scroll when more profiles match than fit.
+
+#### Scenario: Long profile list scrolls
+- **WHEN** the config file defines more SSO profiles than fit in 15 lines
+- **THEN** the picker is 15 lines tall
+- **AND** the arrow keys scroll through the remaining profiles
+
+#### Scenario: Short profile list
+- **WHEN** the config file defines two SSO profiles
+- **THEN** the picker lists both without scrolling
