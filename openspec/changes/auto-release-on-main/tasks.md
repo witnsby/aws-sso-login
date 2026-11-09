@@ -35,15 +35,15 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 6. Homebrew tap (`witnsby/homebrew-aws-sso-login`, separate PR)
 
-- [ ] 6.1 In the tap worktree, add the optional `tag` input and `run-name` to `workflow_dispatch` in `.github/workflows/publish_release.yml` and pass it as `RELEASE_TAG` to `make run`. Verify by reading the workflow and with `actionlint` if installed.
-- [ ] 6.2 In the tap's `src/main.go`, fetch `releases/tags/<RELEASE_TAG>` when set and `releases/latest` otherwise, and fail when any of the four platform assets is missing. Add `httptest`-based unit tests for the URL choice, an unknown tag (404) and a missing asset; verify with `make tests` in the tap.
-- [ ] 6.3 Update the tap's `README.md` and `AGENTS.md`: releases trigger the workflow automatically with a tag; schedule and manual runs stay. Verify the documented `gh workflow run ... -f tag=` command.
-- [ ] 6.4 Commit in the tap repository `feat: update the formula for a given release tag on dispatch`, push the branch and open its PR, linking this change and the `aws-sso-login` PR.
+- [x] 6.1 In the tap worktree, add the optional `tag` input and `run-name` to `workflow_dispatch` in `.github/workflows/publish_release.yml` and pass it as `RELEASE_TAG` to `make run`. Verify by reading the workflow and with `actionlint` if installed.
+- [x] 6.2 In the tap's `src/main.go`, fetch `releases/tags/<RELEASE_TAG>` when set and `releases/latest` otherwise, and fail when any of the four platform assets is missing. Add `httptest`-based unit tests for the URL choice, an unknown tag (404) and a missing asset; verify with `make tests` in the tap.
+- [x] 6.3 Update the tap's `README.md` and `AGENTS.md`: releases trigger the workflow automatically with a tag; schedule and manual runs stay. Verify the documented `gh workflow run ... -f tag=` command.
+- [x] 6.4 Commit in the tap repository `feat: update the formula for a given release tag on dispatch`, push the branch and open its PR, linking this change and the `aws-sso-login` PR.
 
 ## 7. Verification
 
-- [ ] 7.1 Run `make tests`, `go vet ./...`, `gofmt -l ./src` (no output), `make check-action-pins`, `openspec validate auto-release-on-main --strict` and `openspec validate --all --strict`.
-- [ ] 7.2 Dry-run the helper read-only against this repository: `go run ./src/cmd/release next-version` reports no release for `v0.3.0..HEAD` (docs-only), and `go run ./src/cmd/release notes --version v0.3.0 --rev v0.3.0 --out <scratch>` lists the v0.3.0 features, the breaking exit-code change and its pull requests; `changelog` run on a scratch copy of `CHANGELOG.md` produces the expected section. Nothing is committed or pushed by the dry run.
+- [x] 7.1 Run `make tests`, `go vet ./...`, `gofmt -l ./src` (no output), `make check-action-pins`, `openspec validate auto-release-on-main --strict` and `openspec validate --all --strict`.
+- [x] 7.2 Dry-run the helper read-only against this repository: `go run ./src/cmd/release next-version` reports no release for `v0.3.0..HEAD` (docs-only), and `go run ./src/cmd/release notes --version v0.3.0 --rev v0.3.0 --out <scratch>` lists the v0.3.0 features, the breaking exit-code change and its pull requests; `changelog` run on a scratch copy of `CHANGELOG.md` produces the expected section. Nothing is committed or pushed by the dry run.
 
 ## 8. Pull request
 
