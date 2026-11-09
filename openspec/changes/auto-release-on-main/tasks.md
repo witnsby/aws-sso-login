@@ -21,9 +21,9 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 4. Generated release notes
 
-- [ ] 4.1 Extend `source.go` to collect pull requests from merge-commit subjects (`Merge pull request #N`) and squash suffixes (`(#N)`) in the range, and to call `gh pr view N --json number,title,url,commits,closingIssuesReferences` once per pull request through the runner. Verify with fake-runner tests that map commits to pull requests and fall back to commit links.
-- [ ] 4.2 Add `src/internal/release/notes.go` and the `notes --version [--rev] --out` subcommand: sections Breaking changes, Features, Fixes, Improvements, Other pull requests, Closed issues (deduplicated), compare link (omitted without previous tag), empty sections left out. Verify with golden tests for every "Generated release notes" and "Closed issues in release notes" scenario.
-- [ ] 4.3 Commit `build(release): generate release notes with pull requests and closed issues` with `Refs #43`.
+- [x] 4.1 Extend `source.go` to collect pull requests from merge-commit subjects (`Merge pull request #N`) and squash suffixes (`(#N)`) in the range, and to run one `gh api graphql` query per pull request (title, URL, commit OIDs, closing issues with titles) through the runner. Verify with fake-runner tests that map commits to pull requests and fall back to commit links.
+- [x] 4.2 Add `src/internal/release/notes.go` and the `notes --version [--rev] --out` subcommand: sections Breaking changes, Features, Fixes, Improvements, Other pull requests, Closed issues (deduplicated), compare link (omitted without previous tag), empty sections left out. Verify with golden tests for every "Generated release notes" and "Closed issues in release notes" scenario.
+- [x] 4.3 Commit `build(release): generate release notes with pull requests and closed issues` with `Refs #43`.
 
 ## 5. Workflows and documentation
 

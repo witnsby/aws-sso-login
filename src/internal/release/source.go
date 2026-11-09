@@ -3,9 +3,13 @@ package release
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -117,4 +121,137 @@ func revRange(from, rev string) string {
 		return rev
 	}
 	return from + ".." + rev
+}
+
+// Issue is an issue closed by a pull request.
+type Issue struct {
+	Number int    `json:"number"`
+	Title  string `json:"title"`
+	URL    string `json:"url"`
+}
+
+// PullRequest is a pull request merged in the release range.
+type PullRequest struct {
+	Number  int
+	Title   string
+	URL     string
+	Commits []string // commit OIDs
+	Closes  []Issue
+}
+
+var (
+	mergeSubject   = regexp.MustCompile(`^Merge pull request #([0-9]+) `)
+	squashedSuffix = regexp.MustCompile(`\(#([0-9]+)\)\s*$`)
+)
+
+// pullRequestQuery fetches what release notes need about one pull request.
+const pullRequestQuery = `query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      number
+      title
+      url
+      commits(first: 250) { nodes { commit { oid } } }
+      closingIssuesReferences(first: 50) { nodes { number title url } }
+    }
+  }
+}`
+
+type pullRequestResponse struct {
+	Data struct {
+		Repository struct {
+			PullRequest *struct {
+				Number  int    `json:"number"`
+				Title   string `json:"title"`
+				URL     string `json:"url"`
+				Commits struct {
+					Nodes []struct {
+						Commit struct {
+							OID string `json:"oid"`
+						} `json:"commit"`
+					} `json:"nodes"`
+				} `json:"commits"`
+				ClosingIssuesReferences struct {
+					Nodes []Issue `json:"nodes"`
+				} `json:"closingIssuesReferences"`
+			} `json:"pullRequest"`
+		} `json:"repository"`
+	} `json:"data"`
+}
+
+// PullRequestNumbers returns the numbers of the pull requests merged in
+// from..rev, from "Merge pull request #N" merge commits and "(#N)" suffixes
+// of squash-merged commits, in ascending order.
+func (s Source) PullRequestNumbers(ctx context.Context, from, rev string, commits []Commit) ([]int, error) {
+	out, err := s.Run(ctx, "git", "log", "--merges", "--format=%s", revRange(from, rev))
+	if err != nil {
+		return nil, fmt.Errorf("read merge commits %s: %w", revRange(from, rev), err)
+	}
+	seen := map[int]bool{}
+	add := func(m []string) {
+		if m == nil {
+			return
+		}
+		if n, err := strconv.Atoi(m[1]); err == nil {
+			seen[n] = true
+		}
+	}
+	for _, subject := range strings.Split(string(out), "\n") {
+		add(mergeSubject.FindStringSubmatch(strings.TrimSpace(subject)))
+	}
+	for _, c := range commits {
+		add(squashedSuffix.FindStringSubmatch(c.Subject))
+	}
+	numbers := make([]int, 0, len(seen))
+	for n := range seen {
+		numbers = append(numbers, n)
+	}
+	sort.Ints(numbers)
+	return numbers, nil
+}
+
+// PullRequest fetches one pull request with its commits and closed issues.
+func (s Source) PullRequest(ctx context.Context, number int) (PullRequest, error) {
+	owner, name, ok := strings.Cut(s.Repo, "/")
+	if !ok {
+		return PullRequest{}, fmt.Errorf("invalid repository %q: want owner/name", s.Repo)
+	}
+	out, err := s.Run(ctx, "gh", "api", "graphql",
+		"-f", "query="+pullRequestQuery,
+		"-f", "owner="+owner,
+		"-f", "name="+name,
+		"-F", "number="+strconv.Itoa(number))
+	if err != nil {
+		return PullRequest{}, fmt.Errorf("fetch pull request #%d: %w", number, err)
+	}
+	var resp pullRequestResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		return PullRequest{}, fmt.Errorf("decode pull request #%d: %w", number, err)
+	}
+	raw := resp.Data.Repository.PullRequest
+	if raw == nil {
+		return PullRequest{}, fmt.Errorf("pull request #%d not found in %s", number, s.Repo)
+	}
+	pr := PullRequest{Number: raw.Number, Title: raw.Title, URL: raw.URL, Closes: raw.ClosingIssuesReferences.Nodes}
+	for _, n := range raw.Commits.Nodes {
+		pr.Commits = append(pr.Commits, n.Commit.OID)
+	}
+	return pr, nil
+}
+
+// PullRequests fetches every pull request merged in from..rev.
+func (s Source) PullRequests(ctx context.Context, from, rev string, commits []Commit) ([]PullRequest, error) {
+	numbers, err := s.PullRequestNumbers(ctx, from, rev, commits)
+	if err != nil {
+		return nil, err
+	}
+	prs := make([]PullRequest, 0, len(numbers))
+	for _, n := range numbers {
+		pr, err := s.PullRequest(ctx, n)
+		if err != nil {
+			return nil, err
+		}
+		prs = append(prs, pr)
+	}
+	return prs, nil
 }

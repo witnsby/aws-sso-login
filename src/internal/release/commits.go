@@ -108,11 +108,15 @@ func (c Commit) Bump() Bump {
 // Releasing reports whether the commit alone would trigger a release.
 func (c Commit) Releasing() bool { return c.Bump() != BumpNone }
 
+var trailingPullRequest = regexp.MustCompile(`\s*\(#[0-9]+\)\s*$`)
+
 // Text returns the description prefixed with the bold scope, as used in
-// release notes and generated changelog entries.
+// release notes and generated changelog entries. A trailing "(#N)" added by
+// squash merges is dropped; release notes link the pull request instead.
 func (c Commit) Text() string {
+	desc := trailingPullRequest.ReplaceAllString(c.Description, "")
 	if c.Scope == "" {
-		return c.Description
+		return desc
 	}
-	return "**" + c.Scope + ":** " + c.Description
+	return "**" + c.Scope + ":** " + desc
 }

@@ -26,6 +26,12 @@ Commands:
       the version (date defaults to today in UTC) and update the compare
       links. An empty [Unreleased] section is filled from the commits since
       the previous tag.
+
+  notes --version vX.Y.Z [--rev REV] [--out FILE]
+      Render the release description for the commits and pull requests
+      since the previous tag: breaking changes, features, fixes,
+      improvements, other pull requests, closed issues and a compare link.
+      Writes to FILE, or to stdout without --out. Needs an authenticated gh.
 `
 
 // Main runs the release helper with args (without the program name) and
@@ -54,6 +60,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, src Sourc
 		return runNextVersion(ctx, args[1:], stdout, stderr, src)
 	case "changelog":
 		return runChangelog(ctx, args[1:], stderr, src)
+	case "notes":
+		return runNotes(ctx, args[1:], stdout, stderr, src)
 	case "-h", "--help", "help":
 		fmt.Fprint(stdout, usage)
 		return nil
@@ -188,5 +196,44 @@ func runChangelog(ctx context.Context, args []string, stderr io.Writer, src Sour
 		return fmt.Errorf("write changelog: %w", err)
 	}
 	fmt.Fprintf(stderr, "Added the %s section to %s.\n", *version, *file)
+	return nil
+}
+
+func runNotes(ctx context.Context, args []string, stdout, stderr io.Writer, src Source) error {
+	fs := newFlagSet("notes", stderr)
+	version := fs.String("version", "", "version being released, e.g. v0.4.0")
+	rev := fs.String("rev", "HEAD", "last commit of the release")
+	out := fs.String("out", "", "file to write the notes to (default stdout)")
+	if err := parseFlags(fs, args); err != nil {
+		return err
+	}
+	if err := requireVersion(*version); err != nil {
+		return err
+	}
+
+	prevTag, commits, err := releaseRange(ctx, src, *rev, *version)
+	if err != nil {
+		return err
+	}
+	prs, err := src.PullRequests(ctx, prevTag, *rev, commits)
+	if err != nil {
+		return err
+	}
+	notes := RenderNotes(NotesInput{
+		Version:  *version,
+		Previous: prevTag,
+		RepoURL:  src.RepoURL(),
+		Commits:  commits,
+		PRs:      prs,
+	})
+	if *out == "" {
+		_, err := io.WriteString(stdout, notes)
+		return err
+	}
+	if err := os.WriteFile(*out, []byte(notes), 0o644); err != nil {
+		return fmt.Errorf("write release notes: %w", err)
+	}
+	fmt.Fprintf(stderr, "Release notes for %s written to %s (%d commits, %d pull requests since %s).\n",
+		*version, *out, len(commits), len(prs), describeTag(prevTag))
 	return nil
 }

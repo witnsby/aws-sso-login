@@ -48,7 +48,7 @@ Internals:
 Data gathering:
 - Previous tag: the highest tag from `git tag --merged <rev> --list 'v*'` that parses as `vX.Y.Z`, skipping the version being released; no tag → base `v0.0.0`, all history. (`git describe` picks the nearest tag, not the highest, and exits non-zero without tags.)
 - Commits: `git log --no-merges --format=%H%x1f%s%x1f%b%x1e <prev>..<rev>`.
-- Pull requests: merge commits in the range (`git log --merges`) whose subject is `Merge pull request #N ...`, plus `(#N)` suffixes of squash merges. For each, one `gh pr view N --json number,title,url,commits,closingIssuesReferences` call maps commits to their pull request and gives the closed issues. Commits without a pull request link to the commit URL.
+- Pull requests: merge commits in the range (`git log --merges`) whose subject is `Merge pull request #N ...`, plus `(#N)` suffixes of squash merges. For each, one `gh api graphql` query for the pull request's number, title, URL, commit OIDs and `closingIssuesReferences { number title url }` maps commits to their pull request and gives the closed issues with titles (`gh pr view --json closingIssuesReferences` omits issue titles). Commits without a pull request link to the commit URL.
 - Repository URL from `GITHUB_REPOSITORY` / `GITHUB_SERVER_URL`, defaulting to `witnsby/aws-sso-login` locally.
 
 *Alternatives:* semantic-release (Node toolchain plus plugins, unpinned npm dependencies; conflicts with the small-dependency and SHA-pin rules); release-please (adds a release PR step that the user did not want); shell plus `awk` in YAML (hard to unit-test, the changelog rewrite is error-prone). `gh release create --generate-notes` lists pull requests but cannot group by commit type or list closed issues.
