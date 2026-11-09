@@ -13,6 +13,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   name contains the typed text, ignoring case. `Esc` clears the filter. The
   picker is at most 15 lines tall and scrolls through longer lists.
 
+### Changed
+
+- **BREAKING**: failures now exit with a status that names the failure
+  class instead of always `1`: `2` usage error, `3` not signed in to AWS SSO
+  or `aws sso login` failed, `4` SSO role not assigned, `5` AWS CLI not
+  found, `130` profile picker cancelled; `1` remains for everything else.
+  Scripts that only check for a non-zero status are not affected.
+- Errors are reported as one block with a title, details and a `Fix:` line
+  with the next step instead of a raw log line; `process` prints the same
+  information on one line. The underlying error chain is shown with
+  `--debug`.
+- Positional arguments are rejected with a usage error; they were silently
+  ignored before.
+- Progress and results are shown as status lines on stderr (`→` step, `✓`
+  success, `!` warning, `✗` error; ASCII prefixes when stderr is not a
+  terminal, no colors with `NO_COLOR` or `TERM=dumb`) instead of logrus lines
+  such as `INFO[0014]`. Logrus output is limited to `--debug`, now with full
+  timestamps.
+- `import` ends with a success line that also says when the credentials
+  expire; `console` ends with a success line naming the profile and region.
+  `aws sso login` is announced before it starts and confirmed after it
+  succeeds.
+- The refresh notice no longer prints the caller ARN; it is shown with
+  `--debug`.
+
 ## [v0.2.1] - 2026-11-09
 
 ### Fixed

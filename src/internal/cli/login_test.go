@@ -62,7 +62,9 @@ func TestLoginRetryFlow(t *testing.T) {
 
 		_, _, err := retrieveCredentials("dev", true)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), `aws sso login failed for profile "dev"`)
+		assert.Contains(t, rendered(err), "aws sso login failed for profile [dev]")
+		assert.Contains(t, rendered(err), "Fix: Check the AWS CLI output above and try again.")
+		assert.Equal(t, exitNotSignedIn, asUserError(err).code)
 		assert.Len(t, runner.CallsMatching("aws sso login"), 1)
 	})
 
@@ -72,7 +74,8 @@ func TestLoginRetryFlow(t *testing.T) {
 
 		_, _, err := retrieveCredentials("dev", true)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "aws sso login --profile dev")
+		assert.Contains(t, rendered(err), "aws sso login --profile dev")
+		assert.Equal(t, exitNotSignedIn, asUserError(err).code)
 		assert.Len(t, runner.CallsMatching("aws sso login"), 1)
 	})
 
@@ -109,7 +112,8 @@ func TestLoginRetryFlow(t *testing.T) {
 		err := exportCredsToOutput("dev")
 		require.Error(t, err)
 		assert.NotErrorIs(t, err, errSSORoleNoAccess)
-		assert.Contains(t, err.Error(), "aws sso login --profile dev")
+		assert.Contains(t, rendered(err), "aws sso login --profile dev")
+		assert.Equal(t, exitNotSignedIn, asUserError(err).code)
 		assert.Empty(t, out.String())
 		assert.Empty(t, runner.CallsMatching("aws sso login"))
 	})
@@ -120,11 +124,13 @@ func TestLoginRetryFlow(t *testing.T) {
 
 		err := exportCredsToOutput("dev")
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "aws sso login --profile dev")
+		assert.Contains(t, rendered(err), "aws sso login --profile dev")
+		assert.Equal(t, exitNotSignedIn, asUserError(err).code)
 
 		err = processCreds("dev")
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "aws sso login --profile dev")
+		assert.Contains(t, rendered(err), "aws sso login --profile dev")
+		assert.Equal(t, exitNotSignedIn, asUserError(err).code)
 		assert.Empty(t, runner.CallsMatching("aws sso login"))
 	})
 }

@@ -9,6 +9,9 @@ import (
 	"github.com/witnsby/aws-sso-login/src/internal/profiles"
 )
 
+// errSelectionCancelled is returned by a Selector when the user cancels.
+var errSelectionCancelled = errors.New("profile selection cancelled")
+
 // Selector picks an AWS SSO profile from a list. Implementations may render
 // an interactive UI or be replaced with a deterministic fake in tests.
 type Selector interface {
@@ -64,7 +67,7 @@ func (HuhSelector) Pick(p []profiles.Profile) (string, error) {
 	err := newProfileForm(p, &choice).WithOutput(os.Stderr).Run()
 	if err != nil {
 		if errors.Is(err, huh.ErrUserAborted) {
-			return "", errors.New("profile selection cancelled")
+			return "", errSelectionCancelled
 		}
 		return "", fmt.Errorf("running profile selector: %w", err)
 	}

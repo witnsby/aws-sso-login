@@ -21,7 +21,11 @@ context: |
   Output contracts (treat as public API, changing them is BREAKING):
   - `export` stdout must be safe to `eval` in POSIX shells.
   - `process` stdout must contain only the credential_process JSON (Version 1).
-  - Diagnostics and logs go to stderr. Every failure exits with status 1.
+  - Diagnostics and logs go to stderr.
+  - Exit statuses: 0 success, 1 other failure, 2 usage error (bad flags or
+    arguments, no profile where no picker is allowed), 3 not signed in to
+    AWS SSO or `aws sso login` failed, 4 SSO role not assigned, 5 AWS CLI not
+    found, 130 profile picker cancelled.
   - Existing flag names and defaults are public API.
 
   Security: never print or log secrets (access keys, secret keys, session tokens,

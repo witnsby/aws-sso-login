@@ -35,6 +35,7 @@ func newRootCmd() *cobra.Command {
 			if err := configureLogging(cmd); err != nil {
 				return err
 			}
+			report = newReporter(cmd.Name())
 			return resolveProfileFlag(cmd, args)
 		},
 	}
@@ -42,25 +43,30 @@ func newRootCmd() *cobra.Command {
 		"AWS profile name (defaults to $AWS_PROFILE; omit both to choose interactively)")
 	rootCmd.PersistentFlags().Bool("debug", false,
 		"Enable debug logs on stderr (also enabled by AWS_SSO_LOGIN_DEBUG=1)")
+	rootCmd.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
+		return newUsageError(cmd, err)
+	})
 	rootCmd.AddCommand(newConsoleCmd(), newExportCmd(), newImportCmd(), newProcessCmd(), newVersionCmd())
+	for _, c := range rootCmd.Commands() {
+		c.Args = noArgs
+	}
 	return rootCmd
 }
 
-// configureLogging sets the log level for the command being run: debug when
-// --debug or AWS_SSO_LOGIN_DEBUG is set, warn for the machine-readable
-// commands (process, export), info otherwise. Logs go to stderr.
+// configureLogging sets up logrus, which carries debug output only: debug
+// level with full timestamps when --debug or AWS_SSO_LOGIN_DEBUG is set,
+// warn otherwise. Progress and results are status lines (see reporter).
+// Logs go to stderr.
 func configureLogging(cmd *cobra.Command) error {
 	debug, err := cmd.Flags().GetBool("debug")
 	if err != nil {
 		return fmt.Errorf("reading --debug: %w", err)
 	}
-	switch {
-	case debug || debugFromEnv():
+	logrus.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+	if debug || debugFromEnv() {
 		logrus.SetLevel(logrus.DebugLevel)
-	case cmd.Name() == "process" || cmd.Name() == "export":
+	} else {
 		logrus.SetLevel(logrus.WarnLevel)
-	default:
-		logrus.SetLevel(logrus.InfoLevel)
 	}
 	return nil
 }
@@ -180,27 +186,34 @@ func newVersionCmd() *cobra.Command {
 	}
 }
 
-// Run builds the root command and executes the CLI application.
+// Run builds the root command, executes the CLI application and exits with
+// the status of the failure, if any.
 func Run() {
-	if err := newRootCmd().Execute(); err != nil {
-		reportAndExit(err)
+	if code, _ := runCLI(newRootCmd()); code != exitOK {
+		exit(code)
 	}
 }
 
-// reportAndExit reports err once and exits with status 1.
-func reportAndExit(err error) {
-	reportError(err)
-	os.Exit(1)
+// runCLI executes root and reports a failure once. It returns the exit
+// status and the error, if any.
+func runCLI(root *cobra.Command) (int, error) {
+	cmd, err := root.ExecuteC()
+	if err == nil {
+		return exitOK, nil
+	}
+	// The root command has no action of its own, so an error attributed to
+	// it comes from parsing, such as an unknown subcommand.
+	var ue *userError
+	if cmd == root && !errors.As(err, &ue) {
+		err = newUsageError(root, err)
+	}
+	return reportError(cmd, err), err
 }
 
-// reportError renders the single user-facing message for a failure.
-// Commands return wrapped errors without logging them, so this is the only
-// place an error is printed.
-func reportError(err error) {
-	if errors.Is(err, errSSORoleNoAccess) {
-		logrus.Errorf("No access: the configured SSO role is not assigned to your user. "+
-			"Ask your AWS administrator to grant access. (%v)", err)
-		return
+// noArgs rejects positional arguments with a usage error.
+func noArgs(cmd *cobra.Command, args []string) error {
+	if err := cobra.NoArgs(cmd, args); err != nil {
+		return newUsageError(cmd, err)
 	}
-	logrus.Error(err)
+	return nil
 }
