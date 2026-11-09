@@ -11,13 +11,13 @@ No GitHub issues are related (see proposal.md, Related issues), so commits carry
 
 ## 2. Error blocks and exit codes
 
-- [ ] 2.1 Add the `userError` type (title, up to two detail lines, hint, code, wrapped cause with `Unwrap`) and its constructors in `src/internal/cli/errors.go`; verify with tests that `errors.Is(err, errSSORoleNoAccess)` still holds through a wrapped `userError`
-- [ ] 2.2 Rewrite `reportError(cmd, err) int` to render the error block (title with error prefix, two-space-indented detail and `Fix:` lines, no repeated raw error), the one-line form for `process`, and a `logrus.Debugf` line with the full error chain; return `userError.code` or 1; verify with a table test over `reportError` for each error class, for both the block form and the `process` one-line form
-- [ ] 2.3 Add the `exit` seam, switch `Run` to `ExecuteC` and `exit(reportError(cmd, err))`; verify with a test that a failing command calls the `exit` seam with the returned code and that success never calls it
-- [ ] 2.4 Make usage errors exit with 2: wrap flag errors via `SetFlagErrorFunc`, set wrapped `cobra.NoArgs` on subcommands, detect unknown subcommands in `Run`, each with the hint `Run 'aws-sso-login <cmd> --help'`; verify with `newRootCmd()` tests for `import --no-such-flag`, `import extra-arg` and `no-such-command`, each giving exit 2 and one error block
-- [ ] 2.5 Replace "Every failure exits with status 1" in the `context` of `openspec/config.yaml` with the exit code table from the `cli-output` delta, and verify `openspec validate --all --strict` passes
-- [ ] 2.6 Document the exit codes in the `Error handling` section of `README.md`, and add a **BREAKING** `Changed` entry listing them under `## [Unreleased]` in `CHANGELOG.md`; verify the README table matches the `Exit codes` requirement
-- [ ] 2.7 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate unified-cli-output --strict`, tick 2.1–2.7 and commit `feat(cli)!: render errors as blocks with specific exit codes`
+- [x] 2.1 Add the `userError` type (title, up to two detail lines, hint, code, wrapped cause with `Unwrap`) and its constructors in `src/internal/cli/errors.go`; verify with tests that `errors.Is(err, errSSORoleNoAccess)` still holds through a wrapped `userError`
+- [x] 2.2 Rewrite `reportError(cmd, err) int` to render the error block (title with error prefix, two-space-indented detail and `Fix:` lines, no repeated raw error), the one-line form for `process`, and a `logrus.Debugf` line with the full error chain; return `userError.code` or 1; verify with a table test over `reportError` for each error class, for both the block form and the `process` one-line form
+- [x] 2.3 Add the `exit` seam, switch `Run` to `ExecuteC` and `exit(reportError(cmd, err))`; verify with a test that a failing command calls the `exit` seam with the returned code and that success never calls it
+- [x] 2.4 Make usage errors exit with 2: wrap flag errors via `SetFlagErrorFunc`, set wrapped `cobra.NoArgs` on subcommands, detect unknown subcommands in `Run`, each with the hint `Run 'aws-sso-login <cmd> --help'`; verify with `newRootCmd()` tests for `import --no-such-flag`, `import extra-arg` and `no-such-command`, each giving exit 2 and one error block
+- [x] 2.5 Replace "Every failure exits with status 1" in the `context` of `openspec/config.yaml` with the exit code table from the `cli-output` delta, and verify `openspec validate --all --strict` passes
+- [x] 2.6 Document the exit codes in the `Error handling` section of `README.md`, and add a **BREAKING** `Changed` entry listing them under `## [Unreleased]` in `CHANGELOG.md`; verify the README table matches the `Exit codes` requirement
+- [x] 2.7 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate unified-cli-output --strict`, tick 2.1–2.7 and commit `feat(cli)!: render errors as blocks with specific exit codes`
 
 ## 3. Classify credential and profile failures
 

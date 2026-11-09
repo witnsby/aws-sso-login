@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: failures now exit with a status that names the failure
+  class instead of always `1`: `2` usage error, `3` not signed in to AWS SSO
+  or `aws sso login` failed, `4` SSO role not assigned, `5` AWS CLI not
+  found, `130` profile picker cancelled; `1` remains for everything else.
+  Scripts that only check for a non-zero status are not affected.
+- Errors are reported as one block with a title, details and a `Fix:` line
+  with the next step instead of a raw log line; `process` prints the same
+  information on one line. The underlying error chain is shown with
+  `--debug`.
+- Positional arguments are rejected with a usage error; they were silently
+  ignored before.
+
 ## [v0.2.1] - 2026-11-09
 
 ### Fixed

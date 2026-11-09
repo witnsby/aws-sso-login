@@ -14,6 +14,7 @@ import (
 // replaced by a probe, and returns the profile the command would run with.
 func runResolved(t *testing.T, args ...string) (string, error) {
 	t.Helper()
+	keepReporter(t)
 	root := newRootCmd()
 	var got string
 	for _, c := range root.Commands() {

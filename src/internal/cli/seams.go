@@ -40,6 +40,8 @@ var (
 	stderrIsTerminal = func() bool { return isatty.IsTerminal(os.Stderr.Fd()) }
 	// openURL opens a URL in the user's browser.
 	openURL = openBrowser
+	// exit ends the process with a status code.
+	exit = os.Exit
 	// sleep pauses between the console logout and sign-in pages.
 	sleep = time.Sleep
 )

@@ -262,9 +262,22 @@ The project uses [Logrus](https://github.com/sirupsen/logrus).
 ## **Error handling**
 
 - **Recoverable errors** (for example, an expired SSO token): `import` and `console` run `aws sso login` once and retry credential retrieval. The AWS CLI's instructions (authorization URL and code) are shown on stderr, so you can finish the login in any browser when none opens automatically. If the login itself fails, the error is reported and the command exits. `export` and `process` do not start a login.
-- **Unrecoverable errors** (the SSO role is not assigned to your user; AWS returns `ForbiddenException` / `AccessDeniedException` from `GetRoleCredentials`): the CLI does **not** attempt `aws sso login`. It exits immediately with a single line saying the role is unavailable and asking you to contact your AWS administrator.
+- **Unrecoverable errors** (the SSO role is not assigned to your user; AWS returns `ForbiddenException` / `AccessDeniedException` from `GetRoleCredentials`): the CLI does **not** attempt `aws sso login`. It exits immediately and asks you to contact your AWS administrator.
 - **Missing AWS CLI**: if `aws` is not in `PATH`, commands fail with `AWS CLI v2 is required but "aws" was not found in PATH`.
-- All commands exit with status `1` on failure.
+
+Each failure is reported once, as an error block: a title line, up to two detail lines and a `Fix:` line with the next step when one is known. `process` prints the same information on a single line. Run with `--debug` to see the full underlying error.
+
+### Exit codes
+
+| Status | Meaning                                                                                    |
+| ------ | ------------------------------------------------------------------------------------------ |
+| `0`    | Success                                                                                    |
+| `1`    | Any other failure (for example, a profile missing from the config file)                    |
+| `2`    | Usage error: unknown command or flag, unexpected argument, or no profile given where no picker can be shown |
+| `3`    | Not signed in to AWS SSO, or `aws sso login` failed                                        |
+| `4`    | The SSO role is not assigned to your user                                                  |
+| `5`    | AWS CLI v2 (`aws`) not found in `PATH`                                                     |
+| `130`  | Profile selection cancelled in the interactive picker                                      |
 
 ---
 
