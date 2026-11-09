@@ -35,6 +35,7 @@ func newRootCmd() *cobra.Command {
 			if err := configureLogging(cmd); err != nil {
 				return err
 			}
+			report = newReporter(cmd.Name())
 			return resolveProfileFlag(cmd, args)
 		},
 	}

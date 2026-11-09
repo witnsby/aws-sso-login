@@ -4,10 +4,10 @@ No GitHub issues are related (see proposal.md, Related issues), so commits carry
 
 ## 1. Status line reporter
 
-- [ ] 1.1 Add the `stderrIsTerminal` seam to `src/internal/cli/seams.go` (`isatty.IsTerminal(os.Stderr.Fd())`) and verify `go build ./...` succeeds
-- [ ] 1.2 Add `src/internal/cli/status.go` with the `reporter` (`Step`, `Success`, `Warn`), the symbol and ASCII prefix sets, ANSI color on/off and a quiet mode that drops `Step`/`Success` (design decisions 1 and 8); verify with `status_test.go` table tests for: terminal + color, terminal + `NO_COLOR`, terminal + `TERM=dumb`, non-terminal (no ANSI escapes, `-> ok: warning: error:`), and quiet mode
-- [ ] 1.3 Build the reporter in `PersistentPreRunE` from the command name, `stderrIsTerminal`, `NO_COLOR` and `TERM` (quiet for `process` and `export`); verify with a test that `process` and `export` get a quiet reporter and `import`/`console` do not
-- [ ] 1.4 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate unified-cli-output --strict`, tick 1.1–1.4 and commit `feat(cli): add status line reporter`
+- [x] 1.1 Add the `stderrIsTerminal` seam to `src/internal/cli/seams.go` (`isatty.IsTerminal(os.Stderr.Fd())`) and verify `go build ./...` succeeds
+- [x] 1.2 Add `src/internal/cli/status.go` with the `reporter` (`Step`, `Success`, `Warn`), the symbol and ASCII prefix sets, ANSI color on/off and a quiet mode that drops `Step`/`Success` (design decisions 1 and 8); verify with `status_test.go` table tests for: terminal + color, terminal + `NO_COLOR`, terminal + `TERM=dumb`, non-terminal (no ANSI escapes, `-> ok: warning: error:`), and quiet mode
+- [x] 1.3 Build the reporter in `PersistentPreRunE` from the command name, `stderrIsTerminal`, `NO_COLOR` and `TERM` (quiet for `process` and `export`); verify with a test that `process` and `export` get a quiet reporter and `import`/`console` do not
+- [x] 1.4 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate unified-cli-output --strict`, tick 1.1–1.4 and commit `feat(cli): add status line reporter`
 
 ## 2. Error blocks and exit codes
 
