@@ -41,9 +41,9 @@ No GitHub issues are related (see proposal.md, Related issues), so commits carry
 
 ## 5. Verification
 
-- [ ] 5.1 Run `make tests`, `go vet ./...`, `gofmt -l ./src` (no output) and `openspec validate unified-cli-output --strict`, and confirm all pass
-- [ ] 5.2 Run `make build` and smoke-test `./tmp/aws-sso-login` against a temp `AWS_CONFIG_FILE` and `HOME`, with no AWS calls: `process --profile missing` exits 1; `process` with no profile exits 2 with a single `error:` line; `import --no-such-flag` exits 2; `import --profile dev` with `PATH` lacking `aws` exits 5; and with `2>&1 | cat` there are no ANSI escapes
-- [ ] 5.3 Run `openspec validate --all --strict` and confirm it passes before opening the PR
+- [x] 5.1 Run `make tests`, `go vet ./...`, `gofmt -l ./src` (no output) and `openspec validate unified-cli-output --strict`, and confirm all pass
+- [x] 5.2 Run `make build` and smoke-test `./tmp/aws-sso-login` against a temp `AWS_CONFIG_FILE` and `HOME`, with no AWS calls: `process --profile missing` exits 1; `process` with no profile exits 2 with a single `error:` line; `import --no-such-flag` exits 2; `import --profile dev` with `PATH` lacking `aws` exits 5; and with `2>&1 | cat` there are no ANSI escapes
+- [x] 5.3 Run `openspec validate --all --strict` and confirm it passes before opening the PR
 
 ## 6. Pull request
 
