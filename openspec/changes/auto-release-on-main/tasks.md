@@ -9,10 +9,10 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 2. Version from Conventional Commits
 
-- [ ] 2.1 Add `src/internal/release/commits.go`: parse `type(scope)!: description` subjects and `BREAKING CHANGE:` / `BREAKING-CHANGE:` footers; classify each commit as breaking, feat, fix, perf, revert, other or non-conventional; treat `chore(release):` as non-releasing. Verify with table tests in `commits_test.go` (scopes, `!`, footers, `Merge pull request` and `Update README` subjects).
-- [ ] 2.2 Add `src/internal/release/version.go`: semver parse/format, bump rules (highest bump wins, breaking → minor while major is `0`, `v0.0.0` base without tags, no bump without releasing commits). Verify with table tests covering every "Version from Conventional Commits" and "No release without user-facing commits" scenario.
-- [ ] 2.3 Add the `runner` seam and `source.go` (previous tag via `git describe --match`, commits via `git log --no-merges` between the previous tag and `--rev`, default `HEAD`), and `src/cmd/release/main.go` with subcommand `next-version` printing `next=<tag>` and `previous=<tag>` lines (empty `next` when nothing is releasable) to stdout and diagnostics to stderr. Verify with tests that use a scripted fake runner, including a repository without tags.
-- [ ] 2.4 Commit `build(release): compute the next version from Conventional Commits` with `Refs #43`.
+- [x] 2.1 Add `src/internal/release/commits.go`: parse `type(scope)!: description` subjects and `BREAKING CHANGE:` / `BREAKING-CHANGE:` footers; classify each commit as breaking, feat, fix, perf, revert, other or non-conventional; treat `chore(release):` as non-releasing. Verify with table tests in `commits_test.go` (scopes, `!`, footers, `Merge pull request` and `Update README` subjects).
+- [x] 2.2 Add `src/internal/release/version.go`: semver parse/format, bump rules (highest bump wins, breaking → minor while major is `0`, `v0.0.0` base without tags, no bump without releasing commits). Verify with table tests covering every "Version from Conventional Commits" and "No release without user-facing commits" scenario.
+- [x] 2.3 Add the `runner` seam and `source.go` (previous tag via `git tag --merged`, commits via `git log --no-merges` between the previous tag and `--rev`, default `HEAD`), and `src/cmd/release/main.go` with subcommand `next-version` printing `next=<tag>` and `previous=<tag>` lines (empty `next` when nothing is releasable) to stdout and diagnostics to stderr. Verify with tests that use a scripted fake runner, including a repository without tags.
+- [x] 2.4 Commit `build(release): compute the next version from Conventional Commits` with `Refs #43`.
 
 ## 3. Changelog promotion
 

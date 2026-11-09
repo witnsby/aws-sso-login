@@ -46,7 +46,7 @@ Internals:
 - `source.go`: gathers data through a `runner` seam (`func(ctx, name string, args ...string) ([]byte, error)`) that calls `git` and `gh`. Tests swap the runner for a scripted fake, like `testhelpers_test.go` does for the AWS CLI.
 
 Data gathering:
-- Previous tag: `git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' <rev>`; no tag → base `v0.0.0`, all history.
+- Previous tag: the highest tag from `git tag --merged <rev> --list 'v*'` that parses as `vX.Y.Z`, skipping the version being released; no tag → base `v0.0.0`, all history. (`git describe` picks the nearest tag, not the highest, and exits non-zero without tags.)
 - Commits: `git log --no-merges --format=%H%x1f%s%x1f%b%x1e <prev>..<rev>`.
 - Pull requests: merge commits in the range (`git log --merges`) whose subject is `Merge pull request #N ...`, plus `(#N)` suffixes of squash merges. For each, one `gh pr view N --json number,title,url,commits,closingIssuesReferences` call maps commits to their pull request and gives the closed issues. Commits without a pull request link to the commit URL.
 - Repository URL from `GITHUB_REPOSITORY` / `GITHUB_SERVER_URL`, defaulting to `witnsby/aws-sso-login` locally.
