@@ -94,9 +94,9 @@ In the tap repository, `publish_release.yml`'s `workflow_dispatch` gets `inputs.
 
 ## Migration Plan
 
-1. Merge this change in `aws-sso-login` (CI green). No release is expected from it unless it contains releasing commit types.
-2. Merge the tap PR (`tag` input, updater change).
-3. A maintainer creates the fine-grained token and stores it as `HOMEBREW_TAP_TOKEN` in `witnsby/aws-sso-login` (Settings → Secrets and variables → Actions).
+1. Merge the tap PR (`tag` input, updater change) first: dispatching with an input the tap workflow does not declare fails with HTTP 422.
+2. A maintainer creates the fine-grained token and stores it as `HOMEBREW_TAP_TOKEN` in `witnsby/aws-sso-login` (Settings → Secrets and variables → Actions). Done on 2026-11-09.
+3. Merge this change in `aws-sso-login` (CI green). Its commits use non-releasing types, so it creates no release.
 4. The next `feat`/`fix` merge produces the first automated release; verify the changelog commit, tag, release body and the tap's "Fetch Release" run.
 
 Rollback: delete or disable `auto_release.yml`; `publish_release.yml` still works on manually pushed tags, and the tap still runs on schedule and manual dispatch without the input.

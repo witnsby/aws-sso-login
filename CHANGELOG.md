@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Releases are published automatically after a green merge to `main`: the
+  version follows the Conventional Commits since the last tag, the release
+  description lists breaking changes, features, fixes, improvements, merged
+  pull requests and closed issues, and the Homebrew tap is updated right away.
+
 ## [v0.3.0] - 2026-11-09
 
 ### Added
