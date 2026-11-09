@@ -19,7 +19,7 @@ Every command SHALL choose the profile name from, in order: a non-empty `--profi
 - **AND** the picker is not shown
 
 ### Requirement: Interactive picker availability
-When no profile name comes from the flag or `AWS_PROFILE`, `console`, `export` and `import` SHALL show the interactive picker only if both stdin and stderr are terminals. The picker SHALL render on stderr. Otherwise these commands, and `process` in every case, SHALL fail with an error that asks for `--profile` and exit with status 1.
+When no profile name comes from the flag or `AWS_PROFILE`, `console`, `export` and `import` SHALL show the interactive picker only if both stdin and stderr are terminals. The picker SHALL render on stderr. Otherwise these commands, and `process` in every case, SHALL fail with an error that asks for `--profile` or `AWS_PROFILE` and exit with status 2. A cancelled picker SHALL exit with status 130.
 
 #### Scenario: Picker on a terminal
 - **WHEN** the user runs `aws-sso-login import` on a terminal with no `--profile` and no `AWS_PROFILE`
@@ -33,18 +33,18 @@ When no profile name comes from the flag or `AWS_PROFILE`, `console`, `export` a
 
 #### Scenario: Non-interactive invocation without a profile
 - **WHEN** `aws-sso-login import` runs with stdin not attached to a terminal and with no `--profile` and no `AWS_PROFILE`
-- **THEN** stderr reports that `--profile` must be specified
-- **AND** stdout is empty and the exit status is 1
+- **THEN** stderr reports that `--profile` must be specified, with a `Fix:` line naming `--profile <name>` and `AWS_PROFILE`
+- **AND** stdout is empty and the exit status is 2
 
 #### Scenario: process never prompts
 - **WHEN** `aws-sso-login process` runs on a terminal with no `--profile` and no `AWS_PROFILE`
 - **THEN** no picker is shown
-- **AND** stderr reports that `--profile` must be specified, stdout is empty and the exit status is 1
+- **AND** stderr reports that `--profile` must be specified, stdout is empty and the exit status is 2
 
 #### Scenario: Picker cancelled
 - **WHEN** the user cancels the picker
 - **THEN** stderr reports that profile selection was cancelled
-- **AND** stdout is empty and the exit status is 1
+- **AND** stdout is empty and the exit status is 130
 
 ### Requirement: Profile section lookup
 A profile name SHALL map to its AWS config section the same way for every command and for the picker: `default` SHALL map to `[default]`, falling back to `[profile default]`. Every other name SHALL map to `[profile <name>]`. The config file SHALL be read from `AWS_CONFIG_FILE` when set, otherwise from `~/.aws/config`.
