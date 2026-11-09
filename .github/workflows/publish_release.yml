@@ -5,25 +5,47 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       # Matches tags like v1.0.0, v2.3.5, etc.
+  # Called by auto_release.yml: a tag pushed with GITHUB_TOKEN does not
+  # trigger the tag push event above.
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag (vX.Y.Z) to build and publish.
+        required: true
+        type: string
 
 permissions:
   contents: write
+  # Read pull requests and the issues they closed for the release notes.
+  pull-requests: read
+  issues: read
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
 
     steps:
-      - name: Check out repository
+      - name: Check out the tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Full history and tags so `git describe` finds the version.
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          # Full history and tags so `git describe` finds the version and
+          # the release notes see the previous tag.
           fetch-depth: 0
+
+      - name: Check the tag format
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Release tag '$TAG' is not vMAJOR.MINOR.PATCH."
+            exit 1
+          fi
 
       # Fails before anything is published when CHANGELOG.md has no
       # section for this tag.
-      - name: Extract release notes from CHANGELOG.md
-        run: make release-notes VERSION="${{ github.ref_name }}"
+      - name: Check CHANGELOG.md has a section for the tag
+        run: make release-notes VERSION="$TAG"
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -43,16 +65,22 @@ jobs:
       - name: Generate checksums
         run: make checksums
 
+      - name: Generate release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: go run ./src/cmd/release notes --version "$TAG" --out tmp/release-description.md
+
       - name: Create GitHub release if missing
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
-            echo "Release ${{ github.ref_name }} already exists, uploading assets to it."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, uploading assets to it."
           else
-            gh release create "${{ github.ref_name }}" \
-              --title "Release ${{ github.ref_name }}" \
-              --notes-file tmp/release-notes.md
+            gh release create "$TAG" \
+              --verify-tag \
+              --title "Release $TAG" \
+              --notes-file tmp/release-description.md
           fi
 
       - name: Upload assets to release
@@ -60,4 +88,29 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Upload the binaries (aws-sso-login_<os>_<arch>) and the checksums file.
-          gh release upload "${{ github.ref_name }}" ./tmp/aws-sso-login_* --clobber
+          gh release upload "$TAG" ./tmp/aws-sso-login_* --clobber
+
+  # Starts the tap's "Fetch Release" workflow so Homebrew picks up the
+  # release right away instead of on its daily schedule.
+  notify-tap:
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    permissions: {}
+
+    steps:
+      - name: Start the Homebrew tap update
+        env:
+          # Fine-grained token: repository witnsby/homebrew-aws-sso-login,
+          # permission "Actions: Read and write".
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          TAP_REPO: witnsby/homebrew-aws-sso-login
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            msg="HOMEBREW_TAP_TOKEN is not set, so the tap was not notified. It picks up $TAG on its daily schedule."
+            echo "::warning::$msg"
+            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh workflow run publish_release.yml --repo "$TAP_REPO" --ref main -f tag="$TAG"
+          echo "Started Fetch Release in $TAP_REPO for $TAG: https://github.com/$TAP_REPO/actions/workflows/publish_release.yml" >> "$GITHUB_STEP_SUMMARY"

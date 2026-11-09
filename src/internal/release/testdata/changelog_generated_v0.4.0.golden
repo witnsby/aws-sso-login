@@ -1,0 +1,25 @@
+# Changelog
+
+## [Unreleased]
+
+## [v0.4.0] - 2026-11-10
+
+### Added
+
+- add --region
+
+### Changed
+
+- **BREAKING**: **cli:** rename --profile
+- cache profile list
+
+### Fixed
+
+- **cli:** handle empty cache
+
+## [v0.3.0] - 2026-11-09
+
+- Old.
+
+[Unreleased]: https://github.com/witnsby/aws-sso-login/compare/v0.4.0...HEAD
+[v0.4.0]: https://github.com/witnsby/aws-sso-login/compare/v0.3.0...v0.4.0

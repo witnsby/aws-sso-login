@@ -1,0 +1,27 @@
+## Breaking changes
+
+- **cli:** render errors as blocks ([#49](https://github.com/witnsby/aws-sso-login/pull/49))
+
+## Features
+
+- **cli:** filter the profile picker as you type ([#50](https://github.com/witnsby/aws-sso-login/pull/50))
+
+## Fixes
+
+- handle empty cache ([c4ddddd](https://github.com/witnsby/aws-sso-login/commit/c4dddddddddd))
+
+## Improvements
+
+- cache profile list ([#53](https://github.com/witnsby/aws-sso-login/pull/53))
+- undo picker height ([#50](https://github.com/witnsby/aws-sso-login/pull/50))
+
+## Other pull requests
+
+- docs(openspec): archive v0.3.0 changes ([#52](https://github.com/witnsby/aws-sso-login/pull/52))
+
+## Closed issues
+
+- [#12](https://github.com/witnsby/aws-sso-login/issues/12) Long profile lists
+- [#34](https://github.com/witnsby/aws-sso-login/issues/34) Harden pipeline
+
+**Full changelog**: [v0.3.0...v0.4.0](https://github.com/witnsby/aws-sso-login/compare/v0.3.0...v0.4.0)

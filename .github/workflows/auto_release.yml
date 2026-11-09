@@ -1,0 +1,100 @@
+name: Auto Release
+
+# Releases after CI passes for a push to main: the Conventional Commits since
+# the last vX.Y.Z tag decide whether and which version to release. See
+# README.md "Releases".
+on:
+  workflow_run:
+    workflows: [Build Release]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  # Push the changelog commit and the tag, publish the release.
+  contents: write
+  # Read pull requests and the issues they closed for the release notes.
+  pull-requests: read
+  issues: read
+
+concurrency:
+  group: auto-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    # Only green CI runs for pushes to this repository's main branch.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    env:
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+
+    steps:
+      - name: Check out the commit CI tested
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          # Full history and tags to find the previous release.
+          fetch-depth: 0
+
+      - name: Stop if main moved on
+        id: head
+        run: |
+          git fetch --quiet origin main
+          current="$(git rev-parse origin/main)"
+          if [ "$current" != "$HEAD_SHA" ]; then
+            echo "::notice::main moved from $HEAD_SHA to $current; the run for the newer commit decides the release."
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Go
+        if: steps.head.outputs.current == 'true'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Compute the next version
+        id: version
+        if: steps.head.outputs.current == 'true'
+        run: |
+          go run ./src/cmd/release next-version | tee -a "$GITHUB_OUTPUT"
+
+      - name: Commit the changelog and tag the release
+        id: tag
+        if: steps.version.outputs.next != ''
+        env:
+          TAG: ${{ steps.version.outputs.next }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null ||
+             git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag $TAG already exists; nothing was committed or pushed."
+            exit 1
+          fi
+          go run ./src/cmd/release changelog --version "$TAG"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore(release): $TAG"
+          git tag -a "$TAG" -m "Release $TAG"
+          # Both refs or neither: a rejected main push leaves no orphan tag.
+          git push --atomic origin "HEAD:refs/heads/main" "refs/tags/$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Tagged $TAG on $(git rev-parse --short HEAD) (previous: ${{ steps.version.outputs.previous }})." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report nothing to release
+        if: steps.head.outputs.current == 'true' && steps.version.outputs.next == ''
+        run: echo "No feat, fix, perf, revert or breaking commits since ${{ steps.version.outputs.previous || 'the first commit' }}; nothing to release." >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    needs: prepare
+    if: needs.prepare.outputs.tag != ''
+    uses: ./.github/workflows/publish_release.yml
+    with:
+      tag: ${{ needs.prepare.outputs.tag }}
+    secrets: inherit

@@ -23,6 +23,7 @@ The tool does not talk to the AWS SSO APIs directly. It shells out to AWS CLI v2
 .
 ├── src/
 │   ├── cmd/bin/main.go          # Binary entrypoint, calls cli.Run()
+│   ├── cmd/release/main.go      # Release helper for CI (next-version, changelog, notes)
 │   └── internal/
 │       ├── cli/                 # Cobra commands and command logic
 │       │   ├── cli.go           #   command tree, persistent flags, logging, error reporting
@@ -33,10 +34,11 @@ The tool does not talk to the AWS SSO APIs directly. It shells out to AWS CLI v2
 │       │   ├── browser.go       #   per-OS browser launcher
 │       │   └── seams.go         #   package-level seams for tests
 │       ├── profiles/            # Listing SSO-enabled profiles from ~/.aws/config
+│       ├── release/             # Version bump, changelog promotion, release notes (CI only)
 │       ├── helper/              # Path helpers, constants, build-time version variables
 │       └── model/               # Shared data types (RoleCredential)
 ├── openspec/                    # OpenSpec config, specs and change proposals
-├── .github/workflows/           # CI: build on PR, release on tag
+├── .github/workflows/           # CI on PR/push, auto release after green main, publish on tag
 ├── .cursor/, .claude/, .agents/ # Agent rules and skills
 ├── Makefile                     # Build / test / coverage targets
 ├── CHANGELOG.md                 # Keep a Changelog format
@@ -76,6 +78,10 @@ The build output goes to `./tmp/`. Cross-compile targets cover `darwin/amd64`, `
 ## Spec-driven changes (OpenSpec)
 
 For non-trivial behavior changes, create an OpenSpec change before writing code (`/opsx:propose` or the `openspec-propose` skill). Project constraints for artifacts live in `openspec/config.yaml`. Specs are in `openspec/specs/`, active changes in `openspec/changes/`.
+
+## Releases
+
+Releases are automatic: after CI passes on `main`, `.github/workflows/auto_release.yml` derives the next version from the Conventional Commits since the last tag (`feat` → minor, `fix`/`perf`/`revert` → patch, `!`/`BREAKING CHANGE:` → major, minor while 0.x), promotes `[Unreleased]` in `CHANGELOG.md`, tags, publishes and notifies the Homebrew tap. Use releasing types only for user-facing changes; use `docs`, `chore`, `ci`, `test`, `build` or `refactor` otherwise. Do not push tags or edit released `CHANGELOG.md` sections by hand.
 
 ## Pull request expectations
 

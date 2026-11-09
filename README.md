@@ -325,12 +325,31 @@ Each failure is reported once, as an error block: a title line, up to two detail
 | Toolchain check     | `make check-toolchain`   |
 | Action pin check    | `make check-action-pins` |
 | Release notes       | `make release-notes VERSION=vX.Y.Z` |
+| Next version (dry run) | `go run ./src/cmd/release next-version` |
 | Checksums           | `make checksums`         |
 | Clean               | `make clean`             |
 
 GitHub Actions in `.github/workflows/` are referenced by full commit SHA with the version in a comment (`uses: owner/repo@<sha> # vX.Y.Z`); CI runs `make check-action-pins` and fails on tag or branch references. Dependabot keeps the pins up to date.
 
-Pushing a `vX.Y.Z` tag publishes a release whose description is the `## [vX.Y.Z]` section of `CHANGELOG.md`; the release workflow fails before publishing anything when that section is missing or empty, so add it before tagging. Binaries are written to `./tmp/`. Each release also ships `aws-sso-login_checksums.txt`; verify a download with `sha256sum -c aws-sso-login_checksums.txt --ignore-missing` (or `shasum -a 256 -c` on macOS). See [AGENTS.md](AGENTS.md) for repository layout and coding conventions. Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec); project rules are in [`openspec/config.yaml`](openspec/config.yaml).
+Binaries are written to `./tmp/`. Each release also ships `aws-sso-login_checksums.txt`; verify a download with `sha256sum -c aws-sso-login_checksums.txt --ignore-missing` (or `shasum -a 256 -c` on macOS). See [AGENTS.md](AGENTS.md) for repository layout and coding conventions. Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec); project rules are in [`openspec/config.yaml`](openspec/config.yaml).
+
+### Releases
+
+Releases are automatic. After CI passes for a push to `main`, the "Auto Release" workflow reads the [Conventional Commits](https://www.conventionalcommits.org/) since the last `vX.Y.Z` tag:
+
+| Commits since the last tag                               | Next version                          |
+| -------------------------------------------------------- | ------------------------------------- |
+| `type!:` or a `BREAKING CHANGE:` footer                  | major (minor while the version is 0.x) |
+| `feat:`                                                  | minor                                 |
+| `fix:`, `perf:`, `revert:`                               | patch                                 |
+| only `docs`, `chore`, `ci`, `test`, `build`, `style`, `refactor` or other subjects | no release      |
+
+When a release is due, the workflow moves the `[Unreleased]` entries of `CHANGELOG.md` into a `## [vX.Y.Z] - YYYY-MM-DD` section (or generates entries from the commits when `[Unreleased]` is empty), commits `chore(release): vX.Y.Z` to `main`, tags it and publishes the GitHub release. The release description lists breaking changes, features, fixes, improvements, other merged pull requests and the issues they closed, with links. Finally it starts the [Homebrew tap](https://github.com/witnsby/homebrew-aws-sso-login)'s "Fetch Release" workflow for the new tag.
+
+- The tap is started with the `HOMEBREW_TAP_TOKEN` repository secret: a fine-grained token for `witnsby/homebrew-aws-sso-login` with `Actions: Read and write`. Without it, the release is still published and the tap picks it up on its daily schedule.
+- The workflow pushes to `main` as `github-actions[bot]`. If a ruleset or branch protection is enabled for `main`, allow GitHub Actions to bypass it.
+- A manually pushed `vX.Y.Z` tag is still published the same way, but `CHANGELOG.md` must already have its `## [vX.Y.Z]` section; the release fails before publishing anything otherwise.
+- Preview the next version locally with `go run ./src/cmd/release next-version`, and the release description with `go run ./src/cmd/release notes --version vX.Y.Z` (needs an authenticated `gh`).
 
 ---
 
@@ -342,7 +361,8 @@ Contributions are welcome:
 2. Create a branch for your feature or bug fix.
 3. Add tests and make sure `make tests`, `go vet ./...` and `gofmt -l ./src` pass.
 4. Update `README.md` and the `Unreleased` section of `CHANGELOG.md` for user-visible changes.
-5. Open a pull request with a clear description.
+5. Write commit subjects as [Conventional Commits](https://www.conventionalcommits.org/): `feat` and `fix` commits merged to `main` are released automatically (see [Releases](#releases)).
+6. Open a pull request with a clear description.
 
 ---
 
