@@ -47,7 +47,7 @@ No GitHub issues are related (see proposal.md, Related issues), so commits carry
 
 ## 6. Pull request
 
-- [ ] 6.1 Open a PR from this branch to `main` whose description links the OpenSpec change `unified-cli-output`, calls out the **BREAKING** exit codes, and states that no related issues exist (no `Closes`/`Refs` lines); verify the PR description renders the exit code table
+- [x] 6.1 Open a PR from this branch to `main` whose description links the OpenSpec change `unified-cli-output`, calls out the **BREAKING** exit codes, and states that no related issues exist (no `Closes`/`Refs` lines); verify the PR description renders the exit code table
 
 ## Workflow follow-up
 
