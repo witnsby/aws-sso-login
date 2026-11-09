@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
+	"time"
 )
 
 // errUsage marks command-line mistakes; Main exits with status 2 for them.
@@ -18,6 +20,12 @@ Commands:
       Print "previous=<tag>" and "next=<tag>" for the commits since the last
       vX.Y.Z tag reachable from REV (default HEAD). "next" is empty when no
       commit calls for a release.
+
+  changelog --version vX.Y.Z [--date YYYY-MM-DD] [--file CHANGELOG.md] [--rev REV]
+      Move the [Unreleased] section of the changelog into a new section for
+      the version (date defaults to today in UTC) and update the compare
+      links. An empty [Unreleased] section is filled from the commits since
+      the previous tag.
 `
 
 // Main runs the release helper with args (without the program name) and
@@ -44,6 +52,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, src Sourc
 	switch args[0] {
 	case "next-version":
 		return runNextVersion(ctx, args[1:], stdout, stderr, src)
+	case "changelog":
+		return runChangelog(ctx, args[1:], stderr, src)
 	case "-h", "--help", "help":
 		fmt.Fprint(stdout, usage)
 		return nil
@@ -117,4 +127,66 @@ func describeTag(tag string) string {
 		return "the first commit"
 	}
 	return tag
+}
+
+// releaseRange returns the previous tag (ignoring version itself) and the
+// commits between it and rev.
+func releaseRange(ctx context.Context, src Source, rev, version string) (string, []Commit, error) {
+	prevTag, err := src.PreviousTag(ctx, rev, version)
+	if err != nil {
+		return "", nil, err
+	}
+	commits, err := src.Commits(ctx, prevTag, rev)
+	if err != nil {
+		return "", nil, err
+	}
+	return prevTag, commits, nil
+}
+
+func requireVersion(version string) error {
+	if version == "" {
+		return fmt.Errorf("%w: --version is required", errUsage)
+	}
+	if _, err := ParseVersion(version); err != nil {
+		return fmt.Errorf("%w: %v", errUsage, err)
+	}
+	return nil
+}
+
+func runChangelog(ctx context.Context, args []string, stderr io.Writer, src Source) error {
+	fs := newFlagSet("changelog", stderr)
+	version := fs.String("version", "", "version being released, e.g. v0.4.0")
+	date := fs.String("date", time.Now().UTC().Format(time.DateOnly), "release date (YYYY-MM-DD)")
+	file := fs.String("file", "CHANGELOG.md", "changelog to update in place")
+	rev := fs.String("rev", "HEAD", "last commit of the release")
+	if err := parseFlags(fs, args); err != nil {
+		return err
+	}
+	if err := requireVersion(*version); err != nil {
+		return err
+	}
+
+	prevTag, commits, err := releaseRange(ctx, src, *rev, *version)
+	if err != nil {
+		return err
+	}
+	content, err := os.ReadFile(*file)
+	if err != nil {
+		return fmt.Errorf("read changelog: %w", err)
+	}
+	updated, err := PromoteChangelog(string(content), PromoteOptions{
+		Version:  *version,
+		Previous: prevTag,
+		Date:     *date,
+		RepoURL:  src.RepoURL(),
+		Commits:  commits,
+	})
+	if err != nil {
+		return fmt.Errorf("promote %s: %w", *file, err)
+	}
+	if err := os.WriteFile(*file, []byte(updated), 0o644); err != nil {
+		return fmt.Errorf("write changelog: %w", err)
+	}
+	fmt.Fprintf(stderr, "Added the %s section to %s.\n", *version, *file)
+	return nil
 }

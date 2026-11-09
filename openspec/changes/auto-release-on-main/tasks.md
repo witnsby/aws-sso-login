@@ -16,8 +16,8 @@ Each group is one logical change. It ends with its own commit after `make tests`
 
 ## 3. Changelog promotion
 
-- [ ] 3.1 Add `src/internal/release/changelog.go` and the `changelog --version --date [--file]` subcommand: move `[Unreleased]` content into `## [vX.Y.Z] - YYYY-MM-DD`, leave an empty `## [Unreleased]`, rewrite the `[Unreleased]` link and insert the `[vX.Y.Z]` compare link; when `[Unreleased]` is empty, write generated `### Added` / `### Fixed` / `### Changed` (`**BREAKING**:` prefix) entries. Verify with golden-file tests for curated entries, an empty section, a first release without previous tag, and a copy of the current `CHANGELOG.md` promoted to `v0.3.1`.
-- [ ] 3.2 Commit `build(release): promote the Unreleased changelog section` with `Refs #43`.
+- [x] 3.1 Add `src/internal/release/changelog.go` and the `changelog --version --date [--file]` subcommand: move `[Unreleased]` content into `## [vX.Y.Z] - YYYY-MM-DD`, leave an empty `## [Unreleased]`, rewrite the `[Unreleased]` link and insert the `[vX.Y.Z]` compare link; when `[Unreleased]` is empty, write generated `### Added` / `### Fixed` / `### Changed` (`**BREAKING**:` prefix) entries. Verify with golden-file tests for curated entries, an empty section, a first release without previous tag, and a copy of the current `CHANGELOG.md` promoted to `v0.3.1`.
+- [x] 3.2 Commit `build(release): promote the Unreleased changelog section` with `Refs #43`.
 
 ## 4. Generated release notes
 
