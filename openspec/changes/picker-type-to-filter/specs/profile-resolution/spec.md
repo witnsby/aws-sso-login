@@ -36,7 +36,7 @@ The picker SHALL open with its filter input focused and SHALL show the hint `Typ
 #### Scenario: Cancelled while filtering
 - **WHEN** the user types a filter and then presses `Ctrl+C`
 - **THEN** stderr reports that profile selection was cancelled
-- **AND** the exit status is 1
+- **AND** stdout is empty and the exit status is 130
 
 ### Requirement: Picker height is bounded
 The picker SHALL be at most 15 lines tall, filter input and hint included, and SHALL scroll when more profiles match than fit.
