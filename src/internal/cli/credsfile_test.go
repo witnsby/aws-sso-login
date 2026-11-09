@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-ini/ini"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/witnsby/aws-sso-login/src/internal/awsini"
@@ -120,9 +118,7 @@ func TestImportCredentialsFile(t *testing.T) {
 	installFakeRunner(t, nil)
 	writeCachedCreds(t, mustResolve(t, "dev"), time.Now().Add(time.Hour))
 
-	var logs bytes.Buffer
-	logrus.SetOutput(&logs)
-	t.Cleanup(func() { logrus.SetOutput(os.Stderr) })
+	logs := captureLogs(t)
 
 	require.NoError(t, importCreds("dev"))
 

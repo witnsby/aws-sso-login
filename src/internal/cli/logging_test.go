@@ -12,15 +12,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// captureLogs redirects logrus to a buffer and restores output and level.
+// captureLogs redirects everything the tool writes to stderr (logrus and
+// the stderrOut seam) to one buffer and restores output, level and
+// formatter afterwards.
 func captureLogs(t *testing.T) *bytes.Buffer {
 	t.Helper()
 	var buf bytes.Buffer
-	origLevel := logrus.GetLevel()
+	origLevel, origFormatter, origStderr := logrus.GetLevel(), logrus.StandardLogger().Formatter, stderrOut
 	logrus.SetOutput(&buf)
+	stderrOut = &buf
 	t.Cleanup(func() {
 		logrus.SetOutput(os.Stderr)
 		logrus.SetLevel(origLevel)
+		logrus.SetFormatter(origFormatter)
+		stderrOut = origStderr
 	})
 	return &buf
 }
@@ -38,17 +43,22 @@ func captureStdout(t *testing.T) *bytes.Buffer {
 // execute runs the real command tree like Run does, without exiting.
 func execute(t *testing.T, args ...string) error {
 	t.Helper()
-	// Commands set the global log level; restore it so later tests do not
-	// depend on which command ran before them.
+	_, err := executeCode(t, args...)
+	return err
+}
+
+// executeCode runs the real command tree like Run does and returns the exit
+// status Run would use.
+func executeCode(t *testing.T, args ...string) (int, error) {
+	t.Helper()
+	// Commands set the global log level and reporter; restore them so later
+	// tests do not depend on which command ran before them.
 	level := logrus.GetLevel()
 	t.Cleanup(func() { logrus.SetLevel(level) })
+	keepReporter(t)
 	root := newRootCmd()
 	root.SetArgs(args)
-	err := root.Execute()
-	if err != nil {
-		reportError(err)
-	}
-	return err
+	return runCLI(root)
 }
 
 func nonEmptyLines(s string) []string {
@@ -70,8 +80,8 @@ func TestConfigureLogging(t *testing.T) {
 	}{
 		{"process defaults to warn", []string{"process", "--profile", "dev"}, "", logrus.WarnLevel},
 		{"export defaults to warn", []string{"export", "--profile", "dev"}, "", logrus.WarnLevel},
-		{"import defaults to info", []string{"import", "--profile", "dev"}, "", logrus.InfoLevel},
-		{"console defaults to info", []string{"console", "--profile", "dev"}, "", logrus.InfoLevel},
+		{"import defaults to warn", []string{"import", "--profile", "dev"}, "", logrus.WarnLevel},
+		{"console defaults to warn", []string{"console", "--profile", "dev"}, "", logrus.WarnLevel},
 		{"--debug flag", []string{"process", "--profile", "dev", "--debug"}, "", logrus.DebugLevel},
 		{"env 1", []string{"export", "--profile", "dev"}, "1", logrus.DebugLevel},
 		{"env true", []string{"import", "--profile", "dev"}, "TRUE", logrus.DebugLevel},
@@ -98,13 +108,15 @@ func TestSingleErrorReport(t *testing.T) {
 	logs := captureLogs(t)
 	out := captureStdout(t)
 
-	err := execute(t, "process", "--profile", "missing")
+	code, err := executeCode(t, "process", "--profile", "missing")
 	require.Error(t, err)
 
 	lines := nonEmptyLines(logs.String())
 	require.Len(t, lines, 1, "exactly one error line: %q", logs.String())
-	assert.Contains(t, lines[0], `profile \"missing\" not found`)
+	assert.True(t, strings.HasPrefix(lines[0], "error: "), lines[0])
+	assert.Contains(t, lines[0], `profile "missing" not found`)
 	assert.Empty(t, out.String())
+	assert.Equal(t, exitFailure, code)
 }
 
 // TestQuietProcessAndInformativeImport covers specs/cli-output "Default log
@@ -123,7 +135,8 @@ func TestQuietProcessAndInformativeImport(t *testing.T) {
 	logs.Reset()
 	out.Reset()
 	require.NoError(t, execute(t, "import", "--profile", "dev"))
-	assert.Contains(t, logs.String(), env.CredentialsPath)
+	assert.Contains(t, logs.String(), "~/.aws/credentials")
+	assert.NotContains(t, logs.String(), env.Home)
 	assert.Empty(t, out.String(), "import writes nothing to stdout")
 }
 

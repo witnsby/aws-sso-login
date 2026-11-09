@@ -41,6 +41,7 @@ func console(profileName string, forceLogout bool, logoutWait int) error {
 	signinURL := s.signinURL()
 	s.handleLogout(forceLogout, logoutWait)
 	openURL(signinURL)
+	report.Success("Opened the AWS console for [%s] in %s", profileName, s.region)
 	return nil
 }
 

@@ -19,7 +19,9 @@ func TestMissingAWSCLI(t *testing.T) {
 		err := importCreds("dev")
 		require.ErrorIs(t, err, errAWSCLINotFound)
 		assert.Equal(t, `AWS CLI v2 is required but "aws" was not found in PATH`, err.Error())
-		assert.NotContains(t, err.Error(), "aws sso login")
+		assert.NotContains(t, rendered(err), "aws sso login")
+		assert.Contains(t, rendered(err), "Fix: Install AWS CLI v2: "+awsCLIInstallURL)
+		assert.Equal(t, exitNoAWSCLI, asUserError(err).code)
 		assert.Empty(t, runner.Calls(), "no AWS CLI command may run")
 	})
 
@@ -31,6 +33,7 @@ func TestMissingAWSCLI(t *testing.T) {
 
 		err := importCreds("dev")
 		require.ErrorIs(t, err, errAWSCLINotFound)
+		assert.Equal(t, exitNoAWSCLI, asUserError(err).code)
 		assert.Empty(t, runner.CallsMatching("aws sso login"))
 	})
 

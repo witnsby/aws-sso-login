@@ -250,21 +250,61 @@ Optional in both formats:
 
 ## **Logging**
 
-The project uses [Logrus](https://github.com/sirupsen/logrus).
+`stdout` carries only data (`export` lines, `process` JSON, `version`). Everything meant for people goes to `stderr` as status lines:
 
-- Logs are written to `stderr`, so `stdout` of `export` and `process` stays machine-readable.
-- `process` and `export` log only warnings and errors by default; `console` and `import` also log progress (`info`).
-- Pass `--debug` to any command, or set `AWS_SSO_LOGIN_DEBUG=1` (or `true`), to see debug logs such as the raw stderr of AWS CLI calls. Credentials and sign-in tokens are never logged.
-- Each failure is reported once, as a single error line.
+| Kind    | Terminal | Redirected  |
+| ------- | -------- | ----------- |
+| Step    | `→`      | `->`        |
+| Success | `✓`      | `ok:`       |
+| Warning | `!`      | `warning:`  |
+| Error   | `✗`      | `error:`    |
+
+On a terminal the prefixes are colored; set `NO_COLOR` (any value) or `TERM=dumb` to turn colors off. When `stderr` is redirected to a file or pipe, plain ASCII prefixes are used and no color codes are written.
+
+`import` and `console` show their progress and end with one success line. Output of `aws sso login` is passed through unchanged. Example `import` after the SSO session has expired:
+
+```
+→ Credentials for [dev] need a new AWS SSO sign-in, running 'aws sso login'
+Attempting to open your default browser.
+...
+✓ Signed in to AWS SSO
+→ Refreshed credentials for [dev]
+✓ Credentials for [dev] written to ~/.aws/credentials (valid until 18:42, 8h0m left)
+```
+
+A failure is reported once, as an error block:
+
+```
+✗ No access to the SSO role for profile [dev]
+  You are signed in to AWS SSO, but role ReadOnly in account 123456789012 is not assigned to your user.
+  Fix: Ask your AWS administrator to assign the role, or choose another profile.
+```
+
+`export` and `process` print nothing to `stderr` on success. `process` prints an error on a single line, because AWS SDKs include `credential_process` stderr in their own error messages.
+
+Pass `--debug` to any command, or set `AWS_SSO_LOGIN_DEBUG=1` (or `true`), to see timestamped debug logs ([Logrus](https://github.com/sirupsen/logrus)): the raw stderr of AWS CLI calls, the caller ARN after a refresh, and the full underlying error of a failure. Credentials and sign-in tokens are never logged. Please include `--debug` output when you report an issue.
 
 ---
 
 ## **Error handling**
 
 - **Recoverable errors** (for example, an expired SSO token): `import` and `console` run `aws sso login` once and retry credential retrieval. The AWS CLI's instructions (authorization URL and code) are shown on stderr, so you can finish the login in any browser when none opens automatically. If the login itself fails, the error is reported and the command exits. `export` and `process` do not start a login.
-- **Unrecoverable errors** (the SSO role is not assigned to your user; AWS returns `ForbiddenException` / `AccessDeniedException` from `GetRoleCredentials`): the CLI does **not** attempt `aws sso login`. It exits immediately with a single line saying the role is unavailable and asking you to contact your AWS administrator.
+- **Unrecoverable errors** (the SSO role is not assigned to your user; AWS returns `ForbiddenException` / `AccessDeniedException` from `GetRoleCredentials`): the CLI does **not** attempt `aws sso login`. It exits immediately and asks you to contact your AWS administrator.
 - **Missing AWS CLI**: if `aws` is not in `PATH`, commands fail with `AWS CLI v2 is required but "aws" was not found in PATH`.
-- All commands exit with status `1` on failure.
+
+Each failure is reported once, as an error block: a title line, up to two detail lines and a `Fix:` line with the next step when one is known. `process` prints the same information on a single line. Run with `--debug` to see the full underlying error.
+
+### Exit codes
+
+| Status | Meaning                                                                                    |
+| ------ | ------------------------------------------------------------------------------------------ |
+| `0`    | Success                                                                                    |
+| `1`    | Any other failure (for example, a profile missing from the config file)                    |
+| `2`    | Usage error: unknown command or flag, unexpected argument, or no profile given where no picker can be shown |
+| `3`    | Not signed in to AWS SSO, or `aws sso login` failed                                        |
+| `4`    | The SSO role is not assigned to your user                                                  |
+| `5`    | AWS CLI v2 (`aws`) not found in `PATH`                                                     |
+| `130`  | Profile selection cancelled in the interactive picker                                      |
 
 ---
 

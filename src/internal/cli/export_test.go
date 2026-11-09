@@ -111,10 +111,18 @@ func TestRoleNotAssignedMessage(t *testing.T) {
 	})
 	logs := captureLogs(t)
 
-	require.ErrorIs(t, execute(t, "console", "--profile", "dev"), errSSORoleNoAccess)
+	code, err := executeCode(t, "console", "--profile", "dev")
+	require.ErrorIs(t, err, errSSORoleNoAccess)
+	assert.Equal(t, exitNoAccess, code)
 	lines := nonEmptyLines(logs.String())
-	require.Len(t, lines, 1)
-	assert.Contains(t, lines[0], "not assigned to your user")
+	require.Len(t, lines, 3, "one error block: %q", logs.String())
+	assert.True(t, strings.HasPrefix(lines[0], "error: "), lines[0])
+	assert.Contains(t, logs.String(), "not assigned to your user")
+	assert.Contains(t, lines[0], "[dev]")
+	assert.Contains(t, lines[1], "Admin")
+	assert.Contains(t, lines[1], "123456789012")
+	assert.Contains(t, lines[2], "  Fix: Ask your AWS administrator")
+	assert.LessOrEqual(t, strings.Count(strings.ToLower(logs.String()), "no access to the configured sso role"), 1)
 	assert.Empty(t, runner.CallsMatching("aws sso login"))
 }
 

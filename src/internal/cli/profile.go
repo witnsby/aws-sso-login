@@ -26,7 +26,7 @@ func resolveProfileName(flagValue string, allowPicker bool) (string, error) {
 		return env, nil
 	}
 	if !allowPicker || !isInteractive() {
-		return "", errors.New(helper.ErrorProfileSpecification)
+		return "", newNoProfileError()
 	}
 
 	configPath, err := helper.AwsConfigPath()
@@ -40,6 +40,9 @@ func resolveProfileName(flagValue string, allowPicker bool) (string, error) {
 	}
 
 	name, err := defaultSelector.Pick(ssoProfiles)
+	if errors.Is(err, errSelectionCancelled) {
+		return "", newSelectionCancelledError(err)
+	}
 	if err != nil {
 		return "", fmt.Errorf("could not select profile: %w", err)
 	}
