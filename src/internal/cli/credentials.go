@@ -69,10 +69,11 @@ func retrieveCredentials(profileName string, allowLogin bool) (profiles.Profile,
 		return profiles.Profile{}, nil, err
 	}
 
-	logrus.Infof("Credentials for profile [%s] not available, attempting `aws sso login`...", profileName)
+	report.Step("Credentials for [%s] need a new AWS SSO sign-in, running 'aws sso login'", profileName)
 	if err := ssoLogin(profileName); err != nil {
 		return profiles.Profile{}, nil, err
 	}
+	report.Success("Signed in to AWS SSO")
 
 	roleCred, err = getRoleCredentials(profileName, profile)
 	if errors.Is(err, errSSORoleNoAccess) {
@@ -169,7 +170,8 @@ func updateCachedRoleCredentials(profileName string) error {
 		}
 		return newNotSignedInError(profileName)
 	}
-	logrus.Infof("Updated credentials for %s", strings.TrimSpace(string(output)))
+	logrus.Debugf("Caller identity for profile %q: %s", profileName, strings.TrimSpace(string(output)))
+	report.Step("Refreshed credentials for [%s]", profileName)
 	return nil
 }
 

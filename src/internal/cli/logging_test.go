@@ -80,8 +80,8 @@ func TestConfigureLogging(t *testing.T) {
 	}{
 		{"process defaults to warn", []string{"process", "--profile", "dev"}, "", logrus.WarnLevel},
 		{"export defaults to warn", []string{"export", "--profile", "dev"}, "", logrus.WarnLevel},
-		{"import defaults to info", []string{"import", "--profile", "dev"}, "", logrus.InfoLevel},
-		{"console defaults to info", []string{"console", "--profile", "dev"}, "", logrus.InfoLevel},
+		{"import defaults to warn", []string{"import", "--profile", "dev"}, "", logrus.WarnLevel},
+		{"console defaults to warn", []string{"console", "--profile", "dev"}, "", logrus.WarnLevel},
 		{"--debug flag", []string{"process", "--profile", "dev", "--debug"}, "", logrus.DebugLevel},
 		{"env 1", []string{"export", "--profile", "dev"}, "1", logrus.DebugLevel},
 		{"env true", []string{"import", "--profile", "dev"}, "TRUE", logrus.DebugLevel},
@@ -135,7 +135,8 @@ func TestQuietProcessAndInformativeImport(t *testing.T) {
 	logs.Reset()
 	out.Reset()
 	require.NoError(t, execute(t, "import", "--profile", "dev"))
-	assert.Contains(t, logs.String(), env.CredentialsPath)
+	assert.Contains(t, logs.String(), "~/.aws/credentials")
+	assert.NotContains(t, logs.String(), env.Home)
 	assert.Empty(t, out.String(), "import writes nothing to stdout")
 }
 

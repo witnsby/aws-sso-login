@@ -250,12 +250,39 @@ Optional in both formats:
 
 ## **Logging**
 
-The project uses [Logrus](https://github.com/sirupsen/logrus).
+`stdout` carries only data (`export` lines, `process` JSON, `version`). Everything meant for people goes to `stderr` as status lines:
 
-- Logs are written to `stderr`, so `stdout` of `export` and `process` stays machine-readable.
-- `process` and `export` log only warnings and errors by default; `console` and `import` also log progress (`info`).
-- Pass `--debug` to any command, or set `AWS_SSO_LOGIN_DEBUG=1` (or `true`), to see debug logs such as the raw stderr of AWS CLI calls. Credentials and sign-in tokens are never logged.
-- Each failure is reported once, as a single error line.
+| Kind    | Terminal | Redirected  |
+| ------- | -------- | ----------- |
+| Step    | `→`      | `->`        |
+| Success | `✓`      | `ok:`       |
+| Warning | `!`      | `warning:`  |
+| Error   | `✗`      | `error:`    |
+
+On a terminal the prefixes are colored; set `NO_COLOR` (any value) or `TERM=dumb` to turn colors off. When `stderr` is redirected to a file or pipe, plain ASCII prefixes are used and no color codes are written.
+
+`import` and `console` show their progress and end with one success line. Output of `aws sso login` is passed through unchanged. Example `import` after the SSO session has expired:
+
+```
+→ Credentials for [dev] need a new AWS SSO sign-in, running 'aws sso login'
+Attempting to open your default browser.
+...
+✓ Signed in to AWS SSO
+→ Refreshed credentials for [dev]
+✓ Credentials for [dev] written to ~/.aws/credentials (valid until 18:42, 8h0m left)
+```
+
+A failure is reported once, as an error block:
+
+```
+✗ No access to the SSO role for profile [dev]
+  You are signed in to AWS SSO, but role ReadOnly in account 123456789012 is not assigned to your user.
+  Fix: Ask your AWS administrator to assign the role, or choose another profile.
+```
+
+`export` and `process` print nothing to `stderr` on success. `process` prints an error on a single line, because AWS SDKs include `credential_process` stderr in their own error messages.
+
+Pass `--debug` to any command, or set `AWS_SSO_LOGIN_DEBUG=1` (or `true`), to see timestamped debug logs ([Logrus](https://github.com/sirupsen/logrus)): the raw stderr of AWS CLI calls, the caller ARN after a refresh, and the full underlying error of a failure. Credentials and sign-in tokens are never logged. Please include `--debug` output when you report an issue.
 
 ---
 

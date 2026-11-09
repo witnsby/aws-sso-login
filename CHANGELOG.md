@@ -19,6 +19,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `--debug`.
 - Positional arguments are rejected with a usage error; they were silently
   ignored before.
+- Progress and results are shown as status lines on stderr (`→` step, `✓`
+  success, `!` warning, `✗` error; ASCII prefixes when stderr is not a
+  terminal, no colors with `NO_COLOR` or `TERM=dumb`) instead of logrus lines
+  such as `INFO[0014]`. Logrus output is limited to `--debug`, now with full
+  timestamps.
+- `import` ends with a success line that also says when the credentials
+  expire; `console` ends with a success line naming the profile and region.
+  `aws sso login` is announced before it starts and confirmed after it
+  succeeds.
+- The refresh notice no longer prints the caller ARN; it is shown with
+  `--debug`.
 
 ## [v0.2.1] - 2026-11-09
 

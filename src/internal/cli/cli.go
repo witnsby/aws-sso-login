@@ -53,21 +53,20 @@ func newRootCmd() *cobra.Command {
 	return rootCmd
 }
 
-// configureLogging sets the log level for the command being run: debug when
-// --debug or AWS_SSO_LOGIN_DEBUG is set, warn for the machine-readable
-// commands (process, export), info otherwise. Logs go to stderr.
+// configureLogging sets up logrus, which carries debug output only: debug
+// level with full timestamps when --debug or AWS_SSO_LOGIN_DEBUG is set,
+// warn otherwise. Progress and results are status lines (see reporter).
+// Logs go to stderr.
 func configureLogging(cmd *cobra.Command) error {
 	debug, err := cmd.Flags().GetBool("debug")
 	if err != nil {
 		return fmt.Errorf("reading --debug: %w", err)
 	}
-	switch {
-	case debug || debugFromEnv():
+	logrus.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+	if debug || debugFromEnv() {
 		logrus.SetLevel(logrus.DebugLevel)
-	case cmd.Name() == "process" || cmd.Name() == "export":
+	} else {
 		logrus.SetLevel(logrus.WarnLevel)
-	default:
-		logrus.SetLevel(logrus.InfoLevel)
 	}
 	return nil
 }

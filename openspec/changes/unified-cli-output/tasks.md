@@ -30,14 +30,14 @@ No GitHub issues are related (see proposal.md, Related issues), so commits carry
 
 ## 4. Progress and results as status lines
 
-- [ ] 4.1 Change `configureLogging` to debug-only logrus: `DebugLevel` with `TextFormatter{FullTimestamp: true}` when debug is on, `WarnLevel` otherwise; verify with `logging_test.go` that debug lines carry a full date and time and that no `LEVEL[` marker appears without debug
-- [ ] 4.2 Replace the `logrus.Infof` refresh notice with `report.Step("Refreshed credentials for [<profile>]")` and move the caller ARN to `logrus.Debug`; verify that `import` without debug shows the step line and neither the ARN nor the account ID, and that `--debug` shows the ARN
-- [ ] 4.3 Frame `aws sso login` with a step line before `cmd.Run()` and a success line after it, keeping `cmd.Stdout`/`cmd.Stderr` set to `os.Stderr`; verify with `login_test.go` that the step line comes before the fake AWS CLI output and the success line after it
-- [ ] 4.4 Add `displayPath` (leading `$HOME/` becomes `~/`) and expiry formatting (local time from `now().Location()`, remaining time truncated to minutes without `0s`, date added on another day), and end `import` with the success line; verify with tests for `18:42` + `8h0m`, the next-day date, `~/.aws/credentials`, and `AWS_SHARED_CREDENTIALS_FILE=/tmp/creds` shown in full, and that no credential value appears in the output
-- [ ] 4.5 End `console` with a success line naming the profile and the console region; verify with `console_test.go`, including the picker path, that it is the last stderr line and stdout stays empty
-- [ ] 4.6 Verify `export` and `process` print nothing to stderr on success, with a test for each
-- [ ] 4.7 Rewrite the `Logging` section of `README.md` with sample `import` output (success and unassigned role) using placeholders `123456789012` and `https://example.awsapps.com/start`, and note the terminal/ASCII/`NO_COLOR` rules; add an `Unreleased` `Changed` entry to `CHANGELOG.md` for the new status lines and the import expiry; verify the README samples match the test fixtures' wording
-- [ ] 4.8 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate unified-cli-output --strict`, tick 4.1–4.8 and commit `feat(cli): report progress and results as status lines`
+- [x] 4.1 Change `configureLogging` to debug-only logrus: `DebugLevel` with `TextFormatter{FullTimestamp: true}` when debug is on, `WarnLevel` otherwise; verify with `logging_test.go` that debug lines carry a full date and time and that no `LEVEL[` marker appears without debug
+- [x] 4.2 Replace the `logrus.Infof` refresh notice with `report.Step("Refreshed credentials for [<profile>]")` and move the caller ARN to `logrus.Debug`; verify that `import` without debug shows the step line and neither the ARN nor the account ID, and that `--debug` shows the ARN
+- [x] 4.3 Frame `aws sso login` with a step line before `cmd.Run()` and a success line after it, keeping `cmd.Stdout`/`cmd.Stderr` set to `os.Stderr`; verify with `login_test.go` that the step line comes before the fake AWS CLI output and the success line after it
+- [x] 4.4 Add `displayPath` (leading `$HOME/` becomes `~/`) and expiry formatting (local time from `now().Location()`, remaining time truncated to minutes without `0s`, date added on another day), and end `import` with the success line; verify with tests for `18:42` + `8h0m`, the next-day date, `~/.aws/credentials`, and `AWS_SHARED_CREDENTIALS_FILE=/tmp/creds` shown in full, and that no credential value appears in the output
+- [x] 4.5 End `console` with a success line naming the profile and the console region; verify with `console_test.go`, including the picker path, that it is the last stderr line and stdout stays empty
+- [x] 4.6 Verify `export` and `process` print nothing to stderr on success, with a test for each
+- [x] 4.7 Rewrite the `Logging` section of `README.md` with sample `import` output (success and unassigned role) using placeholders `123456789012` and `https://example.awsapps.com/start`, and note the terminal/ASCII/`NO_COLOR` rules; add an `Unreleased` `Changed` entry to `CHANGELOG.md` for the new status lines and the import expiry; verify the README samples match the test fixtures' wording
+- [x] 4.8 Run `make tests`, `go vet ./...`, `gofmt -l ./src` and `openspec validate unified-cli-output --strict`, tick 4.1–4.8 and commit `feat(cli): report progress and results as status lines`
 
 ## 5. Verification
 

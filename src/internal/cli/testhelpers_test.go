@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -246,4 +247,11 @@ func TestFakeRunner(t *testing.T) {
 	require.Len(t, calls, 3)
 	assert.Equal(t, "ok a b", calls[0].Argv())
 	assert.Len(t, f.CallsMatching("ok"), 1)
+}
+
+// TestMain discards status lines from tests that call command functions
+// without capturing stderr. Tests that check output capture it themselves.
+func TestMain(m *testing.M) {
+	stderrOut = io.Discard
+	os.Exit(m.Run())
 }
