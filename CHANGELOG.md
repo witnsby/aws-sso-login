@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- The interactive profile picker filters as you type: it opens with the
+  filter input focused and keeps the profiles whose name, account ID or role
+  name contains the typed text, ignoring case. `Esc` clears the filter. The
+  picker is at most 15 lines tall and scrolls through longer lists.
+
 ## [v0.2.1] - 2026-11-09
 
 ### Fixed
